@@ -34,9 +34,17 @@ async function forward(req: NextRequest, ctx: { params: Promise<{ path: string[]
   });
 
   // Pipe the streaming body straight back to the browser.
+  // Strip content-encoding/content-length because fetch() already
+  // auto-decompresses gzip/br/deflate before exposing `upstream.body`;
+  // forwarding those headers would mislead the client into trying to
+  // decompress an already-plaintext body or expecting the wrong length.
+  const responseHeaders = new Headers(upstream.headers);
+  responseHeaders.delete('content-encoding');
+  responseHeaders.delete('content-length');
+
   return new NextResponse(upstream.body, {
     status: upstream.status,
-    headers: upstream.headers,
+    headers: responseHeaders,
   });
 }
 

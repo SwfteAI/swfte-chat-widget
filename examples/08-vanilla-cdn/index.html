@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Swfte Chat — Vanilla CDN</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        max-width: 720px;
+        margin: 48px auto;
+        padding: 0 24px;
+        color: #111;
+        line-height: 1.6;
+      }
+      h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+      .meta { color: #6b7280; margin: 0 0 32px; }
+      pre { background: #f3f4f6; padding: 16px; border-radius: 8px; overflow: auto; font-size: 13px; }
+      code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+      .controls { display: flex; gap: 8px; margin: 16px 0; }
+      button { padding: 8px 16px; background: #6366f1; color: white; border: 0; border-radius: 6px; cursor: pointer; font-size: 14px; }
+      button.secondary { background: #e5e7eb; color: #111; }
+      .log { background: #0f172a; color: #d1d5db; padding: 12px; border-radius: 8px; font-family: 'SF Mono', Menlo, monospace; font-size: 12px; min-height: 120px; overflow: auto; max-height: 240px; }
+    </style>
+  </head>
+  <body>
+    <h1>Swfte Chat — Vanilla CDN</h1>
+    <p class="meta">Single-file example: script-tag CDN, theme override, event listeners.</p>
+
+    <p>
+      This page loads <code>@swfte/chat-widget</code> from <a href="https://unpkg.com">unpkg</a>,
+      themes the widget to a custom indigo, identifies the visitor, and wires up a few event
+      listeners so you can see the widget lifecycle in the live log below.
+    </p>
+
+    <div class="controls">
+      <button id="open-btn">Open widget</button>
+      <button id="send-btn">Send "Hello!" programmatically</button>
+      <button id="clear-btn" class="secondary">Clear history</button>
+    </div>
+
+    <h3>Live event log</h3>
+    <pre class="log" id="log">[ ready ] waiting for widget…</pre>
+
+    <p>
+      Read the <a href="https://www.swfte.com/resources">Swfte resources</a> for more recipes, or
+      see the <a href="../../docs/integrations/vanilla-html.md">vanilla integration guide</a>.
+    </p>
+
+    <!-- 1. Load the widget from a CDN. Pin the version in production. -->
+    <script src="https://unpkg.com/@swfte/chat-widget@1.1.0/dist/swfte-chat.umd.js"></script>
+
+    <!-- 2. Initialise. -->
+    <script>
+      const log = document.getElementById('log');
+      const append = (line) => {
+        log.textContent = log.textContent + '\n' + `[ ${new Date().toLocaleTimeString()} ] ${line}`;
+        log.scrollTop = log.scrollHeight;
+      };
+
+      const client = SwfteChat.createSwfteChatClient({
+        baseUrl: 'https://api.swfte.com/agents',
+        widgetId: 'agent-123',          // replace with your own
+      });
+
+      client.identify({
+        id:    'visitor-demo',
+        name:  'Demo Visitor',
+        email: 'demo@example.com',
+        metadata: { plan: 'free' },
+      });
+
+      const widget = client.createWidget({
+        position: 'bottom-right',
+        greeting: 'Hi! Click around — every event hits the live log on the page.',
+        theme: {
+          colors: {
+            primary:      '#6366f1',
+            primaryHover: '#4f46e5',
+          },
+          radius: { md: '14px' },
+        },
+      });
+
+      widget.on('ready',         () => append('ready'));
+      widget.on('open',          () => append('open'));
+      widget.on('close',         () => append('close'));
+      widget.on('message:sent',  (m) => append('message:sent — ' + m.content));
+      widget.on('message:recv',  (m) => append('message:recv — ' + m.content));
+      widget.on('error',         (e) => append('error — ' + e.message));
+
+      widget.mount(document.body);
+
+      document.getElementById('open-btn').addEventListener('click',  () => widget.open());
+      document.getElementById('send-btn').addEventListener('click',  () => widget.sendMessage('Hello!'));
+      document.getElementById('clear-btn').addEventListener('click', () => widget.clearHistory());
+    </script>
+  </body>
+</html>

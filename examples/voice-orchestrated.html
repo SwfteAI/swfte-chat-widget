@@ -1,0 +1,1923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swfte Voice Orchestration - Streaming Audio</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a1a2e;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        /* Connection Status */
+        .connection-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+
+        .connection-status.connected {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .connection-status.disconnected {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .connection-status.connecting {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #9ca3af;
+        }
+
+        .connection-status.connected .status-dot {
+            background: #22c55e;
+            animation: pulse-dot 2s infinite;
+        }
+
+        .connection-status.disconnected .status-dot {
+            background: #ef4444;
+        }
+
+        .connection-status.connecting .status-dot {
+            background: #f59e0b;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Session State Indicator */
+        .session-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 25px;
+            color: white;
+            font-weight: 600;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .session-state.idle {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+        }
+
+        .session-state.listening {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            animation: pulse-bg 2s infinite;
+        }
+
+        .session-state.processing {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .session-state.speaking {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            animation: pulse-bg 1s infinite;
+        }
+
+        .session-state.interrupted {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .session-state.error {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        }
+
+        @keyframes pulse-bg {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+
+        .state-icon {
+            font-size: 28px;
+        }
+
+        /* Audio Visualizer */
+        .audio-visualizer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            height: 60px;
+            padding: 10px;
+            background: #f9fafb;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .audio-bar {
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+            border-radius: 2px;
+            transition: height 0.1s ease;
+        }
+
+        .audio-visualizer.active .audio-bar {
+            animation: wave 0.5s ease-in-out infinite;
+        }
+
+        .audio-visualizer.speaking .audio-bar {
+            background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+        }
+
+        @keyframes wave {
+            0%, 100% { height: 20px; }
+            50% { height: 40px; }
+        }
+
+        .audio-bar:nth-child(1) { animation-delay: 0s; }
+        .audio-bar:nth-child(2) { animation-delay: 0.1s; }
+        .audio-bar:nth-child(3) { animation-delay: 0.2s; }
+        .audio-bar:nth-child(4) { animation-delay: 0.15s; }
+        .audio-bar:nth-child(5) { animation-delay: 0.25s; }
+        .audio-bar:nth-child(6) { animation-delay: 0.05s; }
+        .audio-bar:nth-child(7) { animation-delay: 0.2s; }
+        .audio-bar:nth-child(8) { animation-delay: 0.1s; }
+        .audio-bar:nth-child(9) { animation-delay: 0.15s; }
+        .audio-bar:nth-child(10) { animation-delay: 0.25s; }
+
+        /* Activity Indicators */
+        .activity-indicators {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .indicator {
+            text-align: center;
+            padding: 15px 20px;
+            border-radius: 12px;
+            background: #f3f4f6;
+            min-width: 120px;
+            transition: all 0.3s ease;
+        }
+
+        .indicator.active {
+            transform: scale(1.05);
+        }
+
+        .indicator.speaking {
+            background: #dbeafe;
+            animation: pulse-indicator 0.5s infinite;
+        }
+
+        .indicator.listening {
+            background: #dcfce7;
+        }
+
+        .indicator.processing {
+            background: #fef3c7;
+        }
+
+        @keyframes pulse-indicator {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        .indicator-icon {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .indicator-label {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        /* Live Transcript */
+        .live-transcript {
+            text-align: center;
+            min-height: 40px;
+            padding: 15px;
+            background: #fef3c7;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 15px;
+            color: #92400e;
+        }
+
+        /* Conversation Transcript */
+        .transcript-area {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 200px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .transcript-area h3 {
+            font-size: 12px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message.user {
+            background: #e0e7ff;
+            color: #3730a3;
+            margin-left: 40px;
+        }
+
+        .message.assistant {
+            background: #f3f4f6;
+            color: #374151;
+            margin-right: 40px;
+        }
+
+        .message.system {
+            background: #fef3c7;
+            color: #92400e;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        /* Config Section */
+        .config-section {
+            margin-bottom: 20px;
+        }
+
+        .config-section label {
+            display: block;
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 6px;
+        }
+
+        .config-section input, .config-section select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .config-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .config-row .config-section {
+            flex: 1;
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-start {
+            flex: 1;
+            padding: 16px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-start:hover {
+            opacity: 0.9;
+        }
+
+        .btn-start:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-end {
+            flex: 1;
+            padding: 14px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-end:hover {
+            background: #dc2626;
+        }
+
+        .btn-interrupt {
+            padding: 14px 20px;
+            background: #f59e0b;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-interrupt:hover {
+            background: #d97706;
+        }
+
+        .btn-interrupt:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .error-banner {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        /* Debug Panel */
+        .debug-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background: #1e293b;
+            border-radius: 12px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 11px;
+            color: #94a3b8;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .debug-panel h4 {
+            color: #e2e8f0;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+
+        .debug-line {
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .debug-line.sent {
+            color: #4ade80;
+        }
+
+        .debug-line.received {
+            color: #60a5fa;
+        }
+
+        .debug-line.error {
+            color: #f87171;
+        }
+
+        /* Buffer Status */
+        .buffer-status {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .buffer-bar {
+            width: 100px;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .buffer-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #10b981);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Voice Orchestration</h1>
+        <p class="subtitle">WebSocket Streaming Audio with VAD</p>
+
+        <!-- Connection Status -->
+        <div class="connection-status disconnected" id="connectionStatus">
+            <span class="status-dot"></span>
+            <span id="connectionText">Disconnected</span>
+        </div>
+
+        <!-- Setup Section -->
+        <div id="setup-section">
+            <div class="config-row">
+                <div class="config-section">
+                    <label>WebSocket URL</label>
+                    <input type="text" id="wsUrl" value="ws://localhost:8307" />
+                </div>
+                <div class="config-section">
+                    <label>Agent ID</label>
+                    <input type="text" id="agentId" value="test-voice-agent" />
+                </div>
+            </div>
+
+            <div class="config-row">
+                <div class="config-section">
+                    <label>ChatFlow ID</label>
+                    <input type="text" id="chatFlowId" value="475f0a4a-1af9-4518-af7c-976bc399046c" />
+                </div>
+                <div class="config-section">
+                    <label>Workspace ID</label>
+                    <input type="text" id="workspaceId" value="test-workspace-e2e" />
+                </div>
+            </div>
+            <div class="config-row">
+                <div class="config-section">
+                    <label>Session ID (auto-generated if empty)</label>
+                    <input type="text" id="sessionId" placeholder="Leave empty for auto-generate" />
+                </div>
+            </div>
+
+            <div id="errorBanner" class="error-banner hidden"></div>
+
+            <button class="btn-start" id="startBtn" onclick="startSession()">
+                <span>Start Voice Session</span>
+            </button>
+        </div>
+
+        <!-- Active Session Section -->
+        <div id="session-section" class="hidden">
+            <!-- Session State -->
+            <div class="session-state idle" id="sessionState">
+                <span class="state-icon" id="stateIcon">-</span>
+                <span id="stateText">IDLE</span>
+            </div>
+
+            <!-- Audio Visualizer -->
+            <div class="audio-visualizer" id="audioVisualizer">
+                <div class="audio-bar"></div>
+                <div class="audio-bar"></div>
+                <div class="audio-bar"></div>
+                <div class="audio-bar"></div>
+                <div class="audio-bar"></div>
+                <div class="audio-bar"></div>
+                <div class="audio-bar"></div>
+                <div class="audio-bar"></div>
+                <div class="audio-bar"></div>
+                <div class="audio-bar"></div>
+            </div>
+
+            <!-- Buffer Status -->
+            <div class="buffer-status">
+                <span>Audio Buffer:</span>
+                <div class="buffer-bar">
+                    <div class="buffer-fill" id="bufferFill" style="width: 0%"></div>
+                </div>
+                <span id="bufferText">0 chunks</span>
+            </div>
+
+            <!-- Activity Indicators -->
+            <div class="activity-indicators">
+                <div class="indicator" id="agentIndicator">
+                    <div class="indicator-icon">-</div>
+                    <div class="indicator-label">Agent</div>
+                </div>
+                <div class="indicator" id="youIndicator">
+                    <div class="indicator-icon">-</div>
+                    <div class="indicator-label">You</div>
+                </div>
+            </div>
+
+            <!-- Live Transcript -->
+            <div class="live-transcript" id="liveTranscript">
+                Waiting for connection...
+            </div>
+
+            <!-- Recording Control - Send early if done speaking -->
+            <div style="display: flex; justify-content: center; gap: 15px; margin: 15px 0;">
+                <button id="sendNowBtn" onclick="sendRecordingNow()" disabled
+                        style="padding: 14px 28px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 16px;">
+                    ✅ Done Speaking - Send Now
+                </button>
+            </div>
+
+            <!-- Call Status Display -->
+            <div id="callStatus" style="text-align: center; padding: 20px; background: #f0fdf4; border-radius: 12px; margin: 15px 0; border: 2px solid #22c55e;">
+                <div style="font-size: 24px; margin-bottom: 8px;">📞</div>
+                <div id="callStatusText" style="font-weight: 600; color: #166534;">Call Active - Listening...</div>
+                <div id="callTurnIndicator" style="font-size: 14px; color: #4b5563; margin-top: 5px;">Speak naturally - I'll respond when you pause</div>
+            </div>
+
+            <!-- Text Input (backup for when voice doesn't work) -->
+            <details style="margin: 15px 0;">
+                <summary style="cursor: pointer; color: #6b7280; font-size: 13px;">💬 Text Input (backup)</summary>
+                <div class="text-input-area" style="display: flex; gap: 10px; margin-top: 10px;">
+                    <input type="text" id="userTextInput" placeholder="Type your message here..."
+                           style="flex: 1; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 16px;"
+                           onkeypress="if(event.key === 'Enter') sendTextMessage()">
+                    <button onclick="sendTextMessage()"
+                            style="padding: 12px 24px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                        Send
+                    </button>
+                </div>
+            </details>
+
+            <!-- Conversation Transcript -->
+            <div class="transcript-area" id="transcript">
+                <h3>Conversation</h3>
+            </div>
+
+            <!-- Control Buttons -->
+            <div class="btn-group">
+                <button class="btn-interrupt" id="interruptBtn" onclick="sendInterrupt()" disabled>
+                    <span>Interrupt</span>
+                </button>
+                <button class="btn-end" onclick="endSession()">
+                    <span>End Session</span>
+                </button>
+            </div>
+
+            <!-- Debug Panel -->
+            <div class="debug-panel" id="debugPanel">
+                <h4>WebSocket Debug</h4>
+                <div id="debugLog"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =====================================================
+        // STATE MANAGEMENT
+        // =====================================================
+        let ws = null;
+        let voiceSessionId = null;
+        let currentState = 'IDLE';
+        let audioContext = null;
+        let mediaStream = null;
+        let analyser = null;
+        let recognition = null;
+        let pingInterval = null;
+        let reconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 5;
+        const RECONNECT_DELAY = 2000;
+
+        // Audio streaming state
+        let audioQueue = [];
+        let isPlaying = false;
+        let playbackPosition = 0;
+        let currentAudioSource = null;
+
+        // Audio recording state (for STT)
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let recordingStartTime = null;
+
+        // Session state
+        let sessionConfirmed = false; // Wait for server to confirm session before enabling VAD
+
+        // Recording state with VAD (Voice Activity Detection)
+        let isUserTurn = false; // True when it's user's turn to speak
+        let recordingTimeout = null; // Fallback max duration timer
+        let vadIntervalId = null; // VAD monitoring interval
+        let silenceStartTime = null; // When silence started
+        let speechDetected = false; // Has user started speaking?
+
+        // VAD Configuration - tune these for optimal experience
+        const SILENCE_THRESHOLD = 15; // Audio level below this = silence (0-255 scale)
+        const SILENCE_DURATION_MS = 2000; // How long silence must last before stopping (2s)
+        const MIN_SPEECH_MS = 500; // Minimum speech before allowing silence detection
+        const MAX_RECORDING_MS = 60000; // Absolute max recording time (60s safety limit)
+        const POST_PLAYBACK_COOLDOWN_MS = 300; // Wait 300ms after TTS ends before recording
+        const VAD_CHECK_INTERVAL_MS = 100; // How often to check audio levels
+        const NO_RESPONSE_TIMEOUT_MS = 10000; // After 10s of no speech, agent asks "are you there?"
+        const MIN_SPEECH_FRAMES = 5; // Minimum frames of speech before we consider it valid speech
+
+        // Echo cancellation - prevent picking up TTS audio
+        let ttsPlaybackActive = false; // True while TTS is playing
+        let postPlaybackCooldown = false; // True during cooldown after TTS ends
+
+        // Hallucination filter - common false positives from Whisper on silence/noise
+        const HALLUCINATION_PATTERNS = [
+            /^\.+$/,                    // Just dots
+            /^thank you\.?$/i,          // "Thank you" on silence
+            /^thanks\.?$/i,             // "Thanks"
+            /^thank you very much\.?$/i, // "Thank you very much"
+            /^thanks for your time\.?$/i, // "Thanks for your time"
+            /^bye\.?$/i,                // "Bye"
+            /^goodbye\.?$/i,            // "Goodbye"
+            /^peace\.?$/i,              // "Peace"
+            /^okay\.?$/i,               // "Okay"
+            /^yes\.?$/i,                // "Yes"
+            /^no\.?$/i,                 // "No"
+            /^no problem\.?$/i,         // "No problem"
+            /^um+\.?$/i,                // "Um"
+            /^uh+\.?$/i,                // "Uh"
+            /^hmm+\.?$/i,               // "Hmm"
+            /^ah+\.?$/i,                // "Ah"
+            /^\s*$/,                    // Empty/whitespace
+            /^you$/i,                   // "You"
+            /^the$/i,                   // "The"
+            /goodbye\.?$/i,             // Ends with "Goodbye"
+            /^i haven't heard/i,        // "I haven't heard from you"
+            /feel free to call back/i,  // Common hold phrase
+            /let you go/i,              // "I'll let you go"
+            /^subtitles by/i,           // Subtitle artifacts
+            /^subscribe/i,              // YouTube artifacts
+            /^please subscribe/i,       // YouTube artifacts
+            /^\[.*\]$/,                 // [Music], [Applause], etc.
+            /^\(.*\)$/,                 // (Music), (Silence), etc.
+        ];
+
+        // =====================================================
+        // UTILITY FUNCTIONS
+        // =====================================================
+        function generateSessionId() {
+            return 'voice-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function log(type, message) {
+            const debugLog = document.getElementById('debugLog');
+            const line = document.createElement('div');
+            line.className = `debug-line ${type}`;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            debugLog.appendChild(line);
+            debugLog.scrollTop = debugLog.scrollHeight;
+
+            // Keep only last 50 lines
+            while (debugLog.children.length > 50) {
+                debugLog.removeChild(debugLog.firstChild);
+            }
+        }
+
+        function showError(message) {
+            const banner = document.getElementById('errorBanner');
+            banner.textContent = message;
+            banner.classList.remove('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('errorBanner').classList.add('hidden');
+        }
+
+        function updateConnectionStatus(status) {
+            const el = document.getElementById('connectionStatus');
+            const text = document.getElementById('connectionText');
+            el.className = `connection-status ${status}`;
+
+            const statusTexts = {
+                'connected': 'Connected',
+                'disconnected': 'Disconnected',
+                'connecting': 'Connecting...'
+            };
+            text.textContent = statusTexts[status] || status;
+        }
+
+        function updateSessionState(state) {
+            currentState = state;
+            const stateEl = document.getElementById('sessionState');
+            const iconEl = document.getElementById('stateIcon');
+            const textEl = document.getElementById('stateText');
+            const visualizer = document.getElementById('audioVisualizer');
+            const agentIndicator = document.getElementById('agentIndicator');
+            const youIndicator = document.getElementById('youIndicator');
+            const interruptBtn = document.getElementById('interruptBtn');
+
+            // Reset classes
+            stateEl.className = 'session-state';
+            agentIndicator.className = 'indicator';
+            youIndicator.className = 'indicator';
+            visualizer.className = 'audio-visualizer';
+
+            const stateConfigs = {
+                'IDLE': { icon: '-', class: 'idle', agentIcon: '-', youIcon: '-' },
+                'LISTENING': { icon: '-', class: 'listening', agentIcon: '-', youIcon: '-', youClass: 'listening' },
+                'PROCESSING': { icon: '-', class: 'processing', agentIcon: '-', youIcon: '-', agentClass: 'processing' },
+                'SPEAKING': { icon: '-', class: 'speaking', agentIcon: '-', youIcon: '-', agentClass: 'speaking', visualizerClass: 'active speaking' },
+                'INTERRUPTED': { icon: '-', class: 'interrupted', agentIcon: '-', youIcon: '-' },
+                'ERROR': { icon: '-', class: 'error', agentIcon: '-', youIcon: '-' }
+            };
+
+            const config = stateConfigs[state] || stateConfigs['IDLE'];
+
+            stateEl.classList.add(config.class);
+            iconEl.textContent = config.icon;
+            textEl.textContent = state;
+            agentIndicator.querySelector('.indicator-icon').textContent = config.agentIcon;
+            youIndicator.querySelector('.indicator-icon').textContent = config.youIcon;
+
+            if (config.agentClass) agentIndicator.classList.add(config.agentClass);
+            if (config.youClass) youIndicator.classList.add(config.youClass);
+            if (config.visualizerClass) visualizer.className = `audio-visualizer ${config.visualizerClass}`;
+
+            // Enable interrupt button only when agent is speaking
+            interruptBtn.disabled = state !== 'SPEAKING';
+
+            // Update call status display for phone-call UX
+            updateCallStatus(state);
+        }
+
+        function updateCallStatus(state) {
+            const callStatus = document.getElementById('callStatus');
+            const statusText = document.getElementById('callStatusText');
+            const turnIndicator = document.getElementById('callTurnIndicator');
+
+            if (!callStatus) return;
+
+            switch (state) {
+                case 'LISTENING':
+                    callStatus.style.background = '#f0fdf4';
+                    callStatus.style.borderColor = '#22c55e';
+                    statusText.textContent = '🎙️ Listening...';
+                    statusText.style.color = '#166534';
+                    turnIndicator.textContent = 'Speak naturally - I\'ll respond when you pause';
+                    break;
+                case 'PROCESSING':
+                    callStatus.style.background = '#fef3c7';
+                    callStatus.style.borderColor = '#f59e0b';
+                    statusText.textContent = '⏳ Processing your speech...';
+                    statusText.style.color = '#92400e';
+                    turnIndicator.textContent = 'Understanding what you said...';
+                    break;
+                case 'SPEAKING':
+                    callStatus.style.background = '#dbeafe';
+                    callStatus.style.borderColor = '#3b82f6';
+                    statusText.textContent = '🔊 Agent Speaking...';
+                    statusText.style.color = '#1e40af';
+                    turnIndicator.textContent = 'Listen to the response (or interrupt anytime)';
+                    break;
+                case 'INTERRUPTED':
+                    callStatus.style.background = '#fef2f2';
+                    callStatus.style.borderColor = '#ef4444';
+                    statusText.textContent = '⏸️ Interrupted';
+                    statusText.style.color = '#dc2626';
+                    turnIndicator.textContent = 'Ready to listen again...';
+                    break;
+                case 'IDLE':
+                    callStatus.style.background = '#f3f4f6';
+                    callStatus.style.borderColor = '#9ca3af';
+                    statusText.textContent = '📞 Call Active';
+                    statusText.style.color = '#4b5563';
+                    turnIndicator.textContent = 'Waiting to start...';
+                    break;
+                case 'ERROR':
+                    callStatus.style.background = '#fef2f2';
+                    callStatus.style.borderColor = '#ef4444';
+                    statusText.textContent = '❌ Error';
+                    statusText.style.color = '#dc2626';
+                    turnIndicator.textContent = 'Something went wrong';
+                    break;
+            }
+        }
+
+        function updateBufferStatus() {
+            const fill = document.getElementById('bufferFill');
+            const text = document.getElementById('bufferText');
+            const percentage = Math.min((audioQueue.length / 5) * 100, 100);
+            fill.style.width = `${percentage}%`;
+            text.textContent = `${audioQueue.length} chunks`;
+        }
+
+        function addMessage(role, text) {
+            const transcript = document.getElementById('transcript');
+            const msg = document.createElement('div');
+            msg.className = `message ${role}`;
+            msg.textContent = text;
+            transcript.appendChild(msg);
+            transcript.scrollTop = transcript.scrollHeight;
+        }
+
+        // =====================================================
+        // WEBSOCKET CONNECTION
+        // =====================================================
+        function connectWebSocket() {
+            const wsUrl = document.getElementById('wsUrl').value;
+            const fullUrl = `${wsUrl}/ws/voice?sessionId=${voiceSessionId}`;
+
+            log('sent', `Connecting to ${fullUrl}`);
+            updateConnectionStatus('connecting');
+
+            ws = new WebSocket(fullUrl);
+
+            ws.onopen = () => {
+                log('received', 'WebSocket connected');
+                updateConnectionStatus('connected');
+                reconnectAttempts = 0;
+                startPingPong();
+
+                // Send session_start message to create the voice session
+                const chatFlowId = document.getElementById('chatFlowId').value.trim() || 'test-chatflow';
+                const workspaceId = document.getElementById('workspaceId').value.trim() || 'test-workspace';
+
+                log('sent', `Sending session_start for chatFlow: ${chatFlowId}`);
+                sendMessage('session_start', {
+                    chatFlowId: chatFlowId,
+                    workspaceId: workspaceId,
+                    voiceConfig: {
+                        voiceId: '21m00Tcm4TlvDq8ikWAM',
+                        voiceName: 'Rachel',
+                        speakingSpeed: 1.0,
+                        useAudioTags: false
+                    }
+                });
+            };
+
+            ws.onmessage = (event) => {
+                handleServerMessage(event.data);
+            };
+
+            ws.onerror = (error) => {
+                log('error', `WebSocket error: ${error.message || 'Unknown error'}`);
+            };
+
+            ws.onclose = (event) => {
+                log('error', `WebSocket closed: ${event.code} ${event.reason}`);
+                updateConnectionStatus('disconnected');
+                stopPingPong();
+
+                // Attempt reconnect
+                if (voiceSessionId && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                    reconnectAttempts++;
+                    log('sent', `Reconnecting in ${RECONNECT_DELAY}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+                    setTimeout(connectWebSocket, RECONNECT_DELAY);
+                }
+            };
+        }
+
+        function sendMessage(type, payload = {}) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('error', 'Cannot send: WebSocket not connected');
+                return;
+            }
+
+            const message = {
+                type,
+                timestamp: Date.now(),
+                ...payload
+            };
+
+            ws.send(JSON.stringify(message));
+            log('sent', `${type}: ${JSON.stringify(payload).substring(0, 100)}`);
+        }
+
+        function handleServerMessage(data) {
+            try {
+                const message = JSON.parse(data);
+                log('received', `${message.type}: ${JSON.stringify(message).substring(0, 100)}`);
+
+                switch (message.type) {
+                    case 'session_start':
+                        handleSessionStart(message);
+                        break;
+                    case 'session_end':
+                        handleSessionEnd(message);
+                        break;
+                    case 'audio_chunk':
+                        handleAudioChunk(message);
+                        break;
+                    case 'audio_end':
+                        handleAudioEnd(message);
+                        break;
+                    case 'state_change':
+                        handleStateChange(message);
+                        break;
+                    case 'interrupt_ack':
+                        handleInterruptAck(message);
+                        break;
+                    case 'interrupt_response':
+                        handleInterruptResponse(message);
+                        break;
+                    case 'error':
+                        handleError(message);
+                        break;
+                    case 'pong':
+                        // Heartbeat acknowledged
+                        break;
+                    case 'agent_response':
+                        // Agent text response - display it
+                        if (message.text || message.response) {
+                            addMessage('assistant', message.text || message.response);
+                        }
+                        break;
+                    case 'transcription_result':
+                        handleTranscriptionResult(message);
+                        break;
+                    case 'transcription_error':
+                        handleTranscriptionError(message);
+                        break;
+                    case 'audio_ignored':
+                        handleAudioIgnored(message);
+                        break;
+                    default:
+                        log('received', `Unknown message type: ${message.type}`);
+                }
+            } catch (e) {
+                log('error', `Failed to parse message: ${e.message}`);
+            }
+        }
+
+        // =====================================================
+        // MESSAGE HANDLERS
+        // =====================================================
+        function handleSessionStart(message) {
+            // Server sends voiceSessionId, fallback to sessionId
+            voiceSessionId = message.voiceSessionId || message.sessionId || voiceSessionId;
+            log('info', `Voice session created: ${voiceSessionId}`);
+            updateSessionState(message.state || 'LISTENING');
+            document.getElementById('liveTranscript').textContent = 'Session started - listening...';
+            addMessage('system', `Voice session started: ${voiceSessionId}`);
+
+            // Mark session as confirmed - now safe to enable VAD
+            sessionConfirmed = true;
+            log('info', 'Session confirmed - VAD enabled');
+        }
+
+        function handleSessionEnd(message) {
+            addMessage('system', `Session ended: ${message.reason || 'Unknown reason'}`);
+            document.getElementById('liveTranscript').textContent = 'Session ended';
+            cleanup();
+        }
+
+        function handleAudioChunk(message) {
+            // Debug: Log full message structure
+            console.log('AudioChunk message received:', message);
+            log('info', `AudioChunk: keys=${Object.keys(message).join(',')}, audioBase64=${message.audioBase64 ? message.audioBase64.length + ' chars' : 'null'}, data=${message.data ? message.data.length + ' chars' : 'null'}`);
+
+            // Support both 'audioBase64' (from AudioChunkMessage) and 'data' (legacy)
+            const audioData = message.audioBase64 || message.data;
+            if (!audioData) {
+                log('error', `Audio chunk missing data. Message keys: ${Object.keys(message).join(', ')}. Full message: ${JSON.stringify(message).substring(0, 500)}`);
+                return;
+            }
+
+            log('info', `Queueing audio chunk #${message.chunkIndex || 'N/A'}: ${audioData.length} chars base64`);
+
+            // Add to queue
+            audioQueue.push({
+                data: audioData,
+                sequence: message.chunkIndex || message.sequence || audioQueue.length,
+                format: message.format || 'mp3'
+            });
+
+            updateBufferStatus();
+            log('info', `Audio queue size: ${audioQueue.length}, isPlaying: ${isPlaying}`);
+
+            // Start playback if we have enough buffer (2-3 chunks)
+            if (!isPlaying && audioQueue.length >= 2) {
+                log('info', 'Starting playback (2+ chunks in queue)');
+                startAudioPlayback();
+            }
+        }
+
+        function handleAudioEnd(message) {
+            log('received', `Audio stream ended, total chunks: ${message.totalChunksSent || message.totalChunks || 'unknown'}`);
+            log('info', `AudioEnd received. Queue size: ${audioQueue.length}, isPlaying: ${isPlaying}`);
+            console.log('AudioEnd message:', message);
+
+            // Start playback immediately if we have queued audio and not already playing
+            if (!isPlaying && audioQueue.length > 0) {
+                log('info', `>>> STARTING PLAYBACK with ${audioQueue.length} queued chunks <<<`);
+                startAudioPlayback();
+            } else if (isPlaying) {
+                log('info', 'Already playing, no action needed');
+            } else {
+                log('warn', 'No audio chunks in queue to play!');
+            }
+        }
+
+        function handleStateChange(message) {
+            updateSessionState(message.state);
+            if (message.message) {
+                document.getElementById('liveTranscript').textContent = message.message;
+            }
+        }
+
+        function handleInterruptAck(message) {
+            log('received', 'Interrupt acknowledged');
+            stopAudioPlayback();
+        }
+
+        function handleInterruptResponse(message) {
+            if (message.transcript) {
+                addMessage('assistant', `[Interrupted] ${message.transcript}`);
+            }
+        }
+
+        function handleError(message) {
+            log('error', `Server error: ${message.message || 'Unknown error'}`);
+            showError(message.message || 'An error occurred');
+            updateSessionState('ERROR');
+        }
+
+        /**
+         * Check if a transcript is likely a hallucination from noise/silence.
+         */
+        function isHallucination(text) {
+            if (!text) return true;
+            const trimmed = text.trim();
+            if (trimmed.length < 2) return true; // Too short
+            if (trimmed.length > 3 && trimmed.split(' ').length === 1) {
+                // Single word over 3 chars - might be valid, check patterns
+            }
+            for (const pattern of HALLUCINATION_PATTERNS) {
+                if (pattern.test(trimmed)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /**
+         * Handle transcription result from backend STT.
+         */
+        function handleTranscriptionResult(message) {
+            const transcript = message.text || message.transcript;
+            const confidence = message.confidence || 0.9;
+
+            log('info', `Transcription received: "${transcript}" (confidence: ${confidence})`);
+
+            if (transcript && transcript.trim()) {
+                const text = transcript.trim();
+
+                // Filter out likely hallucinations
+                if (isHallucination(text)) {
+                    log('warn', `Filtered hallucination: "${text}"`);
+                    document.getElementById('liveTranscript').textContent = 'Listening... (background noise filtered)';
+                    updateSessionState('LISTENING');
+                    return;
+                }
+
+                // Also filter low confidence transcripts
+                if (confidence < 0.5) {
+                    log('warn', `Low confidence transcript filtered: "${text}" (${confidence})`);
+                    document.getElementById('liveTranscript').textContent = 'Could not hear clearly - please try again';
+                    updateSessionState('LISTENING');
+                    return;
+                }
+
+                document.getElementById('liveTranscript').textContent = `You said: "${text}"`;
+                addMessage('user', text);
+
+                // The backend will automatically process this and send agent_response
+                // No need to send speech_end here - backend handles it
+            } else {
+                log('warn', 'Transcription result was empty');
+                document.getElementById('liveTranscript').textContent = 'Could not understand - please try again';
+                updateSessionState('LISTENING');
+            }
+        }
+
+        /**
+         * Handle transcription error from backend STT.
+         */
+        function handleTranscriptionError(message) {
+            const errorMsg = message.message || message.error || 'Transcription failed';
+            log('error', `Transcription error: ${errorMsg}`);
+            document.getElementById('liveTranscript').textContent = 'Error: ' + errorMsg;
+            updateSessionState('LISTENING');
+        }
+
+        /**
+         * Handle audio_ignored message from backend.
+         * This happens when audio was received during TTS playback or cooldown period.
+         * The backend is doing echo suppression for us.
+         */
+        function handleAudioIgnored(message) {
+            const reason = message.reason || 'Audio ignored';
+            const sessionState = message.sessionState || 'UNKNOWN';
+
+            log('info', `🔇 Audio ignored by backend: ${reason} (state: ${sessionState})`);
+
+            // Don't update the UI much - this is expected behavior for echo suppression
+            // Just log it for debugging
+            if (sessionState === 'SPEAKING') {
+                // Audio during TTS - this is normal echo suppression
+                log('info', 'Audio was echo from TTS playback - correctly ignored');
+            } else {
+                // Other reasons - might want to show user
+                log('info', `Audio ignored: ${reason}`);
+            }
+        }
+
+        // =====================================================
+        // AUDIO PLAYBACK (Web Audio API)
+        // =====================================================
+        async function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+        }
+
+        async function startAudioPlayback() {
+            log('info', `startAudioPlayback called: isPlaying=${isPlaying}, queueLength=${audioQueue.length}`);
+            if (isPlaying || audioQueue.length === 0) {
+                log('info', 'startAudioPlayback: early return (already playing or empty queue)');
+                return;
+            }
+
+            isPlaying = true;
+            ttsPlaybackActive = true; // ECHO CANCELLATION: Disable VAD while TTS plays
+            log('info', '🔇 TTS playback starting - VAD disabled to prevent echo');
+
+            await initAudioContext();
+            log('info', 'Audio context ready, playing first chunk...');
+            playNextChunk();
+        }
+
+        async function playNextChunk() {
+            log('info', `playNextChunk called: isPlaying=${isPlaying}, queueLength=${audioQueue.length}`);
+            if (!isPlaying || audioQueue.length === 0) {
+                isPlaying = false;
+                ttsPlaybackActive = false; // TTS done
+
+                // Notify server that playback is complete
+                sendMessage('playback_complete', {
+                    position: playbackPosition
+                });
+                playbackPosition = 0;
+                updateBufferStatus();
+
+                // TURN-BASED: After agent speaks, start recording user's response
+                postPlaybackCooldown = true;
+                log('info', `🔇 TTS complete - waiting ${POST_PLAYBACK_COOLDOWN_MS}ms before recording user`);
+
+                setTimeout(() => {
+                    postPlaybackCooldown = false;
+
+                    if (sessionConfirmed) {
+                        log('info', '🎙️ Starting to record user response...');
+                        updateSessionState('LISTENING');
+                        document.getElementById('liveTranscript').textContent = 'Your turn - speak now...';
+                        isUserTurn = true;
+
+                        // Start recording
+                        startRecording();
+
+                        // Start VAD monitoring for silence detection
+                        startVADMonitoring();
+
+                        // Fallback: absolute max recording time (safety limit)
+                        recordingTimeout = setTimeout(() => {
+                            if (isRecording) {
+                                log('info', `⏱️ Max recording time reached (${MAX_RECORDING_MS}ms) - sending audio`);
+                                stopRecordingWithVAD();
+                            }
+                        }, MAX_RECORDING_MS);
+                    }
+                }, POST_PLAYBACK_COOLDOWN_MS);
+
+                return;
+            }
+
+            const chunk = audioQueue.shift();
+            log('info', `Playing chunk #${chunk.sequence}, format=${chunk.format}, dataSize=${chunk.data?.length || 0}`);
+            updateBufferStatus();
+
+            try {
+                // Decode base64 to ArrayBuffer
+                const binaryString = atob(chunk.data);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                log('info', `Decoded base64 to ${bytes.length} bytes`);
+
+                // Decode audio data
+                log('info', 'Decoding audio data...');
+                const audioBuffer = await audioContext.decodeAudioData(bytes.buffer);
+                log('info', `Audio decoded: duration=${audioBuffer.duration}s, channels=${audioBuffer.numberOfChannels}, sampleRate=${audioBuffer.sampleRate}`);
+
+                // Create source and play
+                currentAudioSource = audioContext.createBufferSource();
+                currentAudioSource.buffer = audioBuffer;
+                currentAudioSource.connect(audioContext.destination);
+
+                currentAudioSource.onended = () => {
+                    log('info', 'Chunk playback ended, playing next...');
+                    playbackPosition += audioBuffer.duration * 1000;
+
+                    // Send progress update
+                    sendMessage('playback_progress', {
+                        position: playbackPosition,
+                        remainingChunks: audioQueue.length
+                    });
+
+                    playNextChunk();
+                };
+
+                currentAudioSource.start(0);
+                log('info', '>>> Audio playback STARTED <<<');
+
+            } catch (e) {
+                log('error', `Audio decode/playback error: ${e.message}`);
+                console.error('Audio playback error:', e);
+                // Try next chunk
+                playNextChunk();
+            }
+        }
+
+        function stopAudioPlayback() {
+            isPlaying = false;
+            audioQueue = [];
+            updateBufferStatus();
+
+            if (currentAudioSource) {
+                try {
+                    currentAudioSource.stop();
+                } catch (e) {}
+                currentAudioSource = null;
+            }
+        }
+
+        // =====================================================
+        // AUDIO VISUALIZATION (No VAD - turn-based recording)
+        // =====================================================
+        let microphoneInitialized = false;
+
+        function monitorAudioVisualizer() {
+            if (!analyser) return;
+
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+            function updateVisualizer() {
+                if (!analyser) return;
+
+                analyser.getByteFrequencyData(dataArray);
+
+                // Update visualizer bars based on audio level
+                updateVisualizerBars(dataArray);
+
+                // Calculate RMS for display only
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) {
+                    sum += dataArray[i] * dataArray[i];
+                }
+                const rms = Math.sqrt(sum / dataArray.length) / 255;
+                const levelPercent = (rms * 100).toFixed(0);
+
+                // Update UI based on current state
+                if (isRecording && isUserTurn) {
+                    document.getElementById('youIndicator').classList.add('active', 'listening');
+                    // Show recording indicator with level
+                    if (currentState === 'LISTENING') {
+                        document.getElementById('liveTranscript').textContent = `🔴 Recording... (Level: ${levelPercent}%)`;
+                    }
+                } else if (ttsPlaybackActive) {
+                    document.getElementById('youIndicator').classList.remove('active');
+                    document.getElementById('agentIndicator').classList.add('active', 'speaking');
+                } else {
+                    document.getElementById('youIndicator').classList.remove('active');
+                    document.getElementById('agentIndicator').classList.remove('active');
+                }
+
+                requestAnimationFrame(updateVisualizer);
+            }
+
+            updateVisualizer();
+        }
+
+        function updateVisualizerBars(dataArray) {
+            const bars = document.querySelectorAll('.audio-bar');
+            const step = Math.floor(dataArray.length / bars.length);
+
+            bars.forEach((bar, i) => {
+                const value = dataArray[i * step];
+                const height = Math.max(10, (value / 255) * 50);
+                bar.style.height = `${height}px`;
+            });
+        }
+
+        // =====================================================
+        // AUDIO RECORDING (for Backend STT)
+        // =====================================================
+
+        /**
+         * Setup MediaRecorder with the microphone stream.
+         * Called after getUserMedia succeeds.
+         */
+        function setupMediaRecorder(stream) {
+            // Prefer webm/opus for better compression, fallback to other formats
+            const mimeTypes = [
+                'audio/webm;codecs=opus',
+                'audio/webm',
+                'audio/ogg;codecs=opus',
+                'audio/mp4',
+                'audio/wav'
+            ];
+
+            let selectedMimeType = '';
+            for (const mimeType of mimeTypes) {
+                if (MediaRecorder.isTypeSupported(mimeType)) {
+                    selectedMimeType = mimeType;
+                    break;
+                }
+            }
+
+            if (!selectedMimeType) {
+                log('error', 'No supported audio MIME type found for MediaRecorder');
+                return;
+            }
+
+            log('info', `Setting up MediaRecorder with MIME type: ${selectedMimeType}`);
+
+            mediaRecorder = new MediaRecorder(stream, {
+                mimeType: selectedMimeType,
+                audioBitsPerSecond: 64000 // 64kbps for good quality/size balance
+            });
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunks.push(event.data);
+                    log('info', `Audio chunk captured: ${event.data.size} bytes, total chunks: ${audioChunks.length}`);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                log('info', `Recording stopped. Total chunks: ${audioChunks.length}`);
+                if (audioChunks.length > 0) {
+                    sendAudioToBackend();
+                }
+            };
+
+            mediaRecorder.onerror = (event) => {
+                log('error', `MediaRecorder error: ${event.error}`);
+            };
+
+            log('info', 'MediaRecorder setup complete');
+        }
+
+        /**
+         * Start recording audio from microphone.
+         */
+        function startRecording() {
+            if (!mediaRecorder || isRecording) {
+                return;
+            }
+
+            audioChunks = [];
+            recordingStartTime = Date.now();
+            isRecording = true;
+
+            // Enable the "Done Speaking" button
+            const sendBtn = document.getElementById('sendNowBtn');
+            if (sendBtn) sendBtn.disabled = false;
+
+            try {
+                mediaRecorder.start(500); // Collect data every 500ms
+                log('info', 'Recording started');
+                document.getElementById('liveTranscript').textContent = '🔴 Recording... (speak now)';
+            } catch (e) {
+                log('error', `Failed to start recording: ${e.message}`);
+                isRecording = false;
+                if (sendBtn) sendBtn.disabled = true;
+            }
+        }
+
+        /**
+         * User clicked "Done Speaking" - send recording early.
+         */
+        function sendRecordingNow() {
+            if (isRecording) {
+                log('info', 'User clicked Done Speaking - sending recording now');
+                stopRecordingWithVAD();
+            }
+        }
+
+        /**
+         * Stop recording and send audio to backend for STT.
+         */
+        function stopRecording() {
+            if (!mediaRecorder || !isRecording) {
+                return;
+            }
+
+            isRecording = false;
+            isUserTurn = false;
+
+            // Disable the "Done Speaking" button
+            const sendBtn = document.getElementById('sendNowBtn');
+            if (sendBtn) sendBtn.disabled = true;
+
+            // Clear any pending recording timeout
+            if (recordingTimeout) {
+                clearTimeout(recordingTimeout);
+                recordingTimeout = null;
+            }
+
+            const duration = recordingStartTime ? Date.now() - recordingStartTime : 0;
+            log('info', `Recording stopped after ${duration}ms`);
+
+            try {
+                mediaRecorder.stop();
+                document.getElementById('liveTranscript').textContent = 'Processing your speech...';
+                updateSessionState('PROCESSING');
+            } catch (e) {
+                log('error', `Failed to stop recording: ${e.message}`);
+            }
+        }
+
+        /**
+         * Stop recording with VAD cleanup.
+         */
+        function stopRecordingWithVAD() {
+            // Stop VAD monitoring first
+            stopVADMonitoring();
+            // Then stop recording
+            stopRecording();
+        }
+
+        /**
+         * Start VAD (Voice Activity Detection) monitoring.
+         * Monitors audio levels and stops recording after sustained silence.
+         * If no speech detected after timeout, asks agent to follow up.
+         */
+        function startVADMonitoring() {
+            if (!analyser) {
+                log('warn', 'No analyser available for VAD');
+                return;
+            }
+
+            // Reset VAD state
+            silenceStartTime = null;
+            speechDetected = false;
+            let recordingStartedAt = Date.now();
+            let speechFrameCount = 0; // Count frames with speech to filter noise
+            let noResponseSent = false; // Only send "no response" once
+
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+            vadIntervalId = setInterval(() => {
+                if (!isRecording) {
+                    stopVADMonitoring();
+                    return;
+                }
+
+                analyser.getByteFrequencyData(dataArray);
+
+                // Calculate average audio level (0-255)
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) {
+                    sum += dataArray[i];
+                }
+                const avgLevel = sum / dataArray.length;
+
+                const isSilent = avgLevel < SILENCE_THRESHOLD;
+                const timeSinceStart = Date.now() - recordingStartedAt;
+
+                if (isSilent) {
+                    // Silence detected
+                    if (!silenceStartTime) {
+                        silenceStartTime = Date.now();
+                    }
+
+                    const silenceDuration = Date.now() - silenceStartTime;
+
+                    // Check if user hasn't responded at all after timeout
+                    if (!speechDetected && timeSinceStart >= NO_RESPONSE_TIMEOUT_MS && !noResponseSent) {
+                        log('info', `⏰ No response for ${NO_RESPONSE_TIMEOUT_MS}ms - asking agent to follow up`);
+                        noResponseSent = true;
+
+                        // DON'T send audio - send a "no_response" signal instead
+                        stopVADMonitoring();
+                        if (recordingTimeout) {
+                            clearTimeout(recordingTimeout);
+                            recordingTimeout = null;
+                        }
+
+                        // Stop recording without sending audio
+                        if (mediaRecorder && isRecording) {
+                            isRecording = false;
+                            isUserTurn = false;
+                            try { mediaRecorder.stop(); } catch(e) {}
+                            audioChunks = []; // Discard the silent audio
+                        }
+
+                        // Tell backend user didn't respond - agent should follow up
+                        sendMessage('no_response', {
+                            silenceDuration: timeSinceStart,
+                            reason: 'User did not respond after agent question'
+                        });
+
+                        document.getElementById('liveTranscript').textContent = 'Waiting for agent...';
+                        updateSessionState('PROCESSING');
+                        return;
+                    }
+
+                    // If user HAS spoken and now silent, check if they're done
+                    if (speechDetected && silenceDuration >= SILENCE_DURATION_MS) {
+                        // Make sure we have enough speech frames (not just noise spike)
+                        if (speechFrameCount >= MIN_SPEECH_FRAMES) {
+                            log('info', `🔇 Silence for ${silenceDuration}ms after speech - sending audio`);
+                            document.getElementById('liveTranscript').textContent = 'Processing your response...';
+                            stopRecordingWithVAD();
+                        } else {
+                            // Not enough speech - likely just noise, keep waiting
+                            log('debug', `Only ${speechFrameCount} speech frames - waiting for more`);
+                        }
+                    } else if (speechDetected && silenceDuration > 500) {
+                        // Show user we detected their pause
+                        const remaining = Math.ceil((SILENCE_DURATION_MS - silenceDuration) / 1000);
+                        document.getElementById('liveTranscript').textContent =
+                            `Paused... continue speaking or wait ${remaining}s`;
+                    } else if (!speechDetected) {
+                        // Still waiting for user to start speaking
+                        const waitingFor = Math.floor(timeSinceStart / 1000);
+                        if (waitingFor > 3) {
+                            document.getElementById('liveTranscript').textContent =
+                                `🎙️ Listening... (${waitingFor}s)`;
+                        }
+                    }
+                } else {
+                    // Speech detected - reset silence timer and count frames
+                    if (silenceStartTime) {
+                        log('debug', `Speech resumed after ${Date.now() - silenceStartTime}ms silence`);
+                    }
+                    silenceStartTime = null;
+                    speechDetected = true;
+                    speechFrameCount++;
+                    document.getElementById('liveTranscript').textContent = '🔴 Recording... (listening)';
+                }
+            }, VAD_CHECK_INTERVAL_MS);
+
+            log('info', 'VAD monitoring started');
+        }
+
+        /**
+         * Stop VAD monitoring.
+         */
+        function stopVADMonitoring() {
+            if (vadIntervalId) {
+                clearInterval(vadIntervalId);
+                vadIntervalId = null;
+            }
+            silenceStartTime = null;
+            speechDetected = false;
+        }
+
+        /**
+         * Send recorded audio to backend via WebSocket.
+         */
+        async function sendAudioToBackend() {
+            if (audioChunks.length === 0) {
+                log('warn', 'No audio chunks to send');
+                return;
+            }
+
+            // Combine chunks into a single blob
+            const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+            const duration = recordingStartTime ? Date.now() - recordingStartTime : 0;
+
+            log('info', `Preparing to send audio: ${audioBlob.size} bytes, duration: ${duration}ms, type: ${audioBlob.type}`);
+
+            // Convert blob to base64
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64Data = reader.result.split(',')[1]; // Remove data URL prefix
+
+                log('info', `Sending audio_data message: ${base64Data.length} chars base64`);
+
+                // Send to backend for STT
+                sendMessage('audio_data', {
+                    audioBase64: base64Data,
+                    mimeType: audioBlob.type,
+                    durationMs: duration,
+                    language: 'en-US'
+                });
+
+                document.getElementById('liveTranscript').textContent = 'Processing speech...';
+                updateSessionState('PROCESSING');
+            };
+
+            reader.onerror = (error) => {
+                log('error', `Failed to read audio blob: ${error}`);
+            };
+
+            reader.readAsDataURL(audioBlob);
+
+            // Clear chunks for next recording
+            audioChunks = [];
+        }
+
+        // =====================================================
+        // PING/PONG HEARTBEAT
+        // =====================================================
+        function startPingPong() {
+            pingInterval = setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    sendMessage('ping');
+                }
+            }, 30000);
+        }
+
+        function stopPingPong() {
+            if (pingInterval) {
+                clearInterval(pingInterval);
+                pingInterval = null;
+            }
+        }
+
+        // =====================================================
+        // SESSION CONTROL
+        // =====================================================
+        async function startSession() {
+            const startBtn = document.getElementById('startBtn');
+            startBtn.disabled = true;
+            startBtn.innerHTML = '<span>Starting...</span>';
+            hideError();
+
+            try {
+                // Generate or use provided session ID
+                voiceSessionId = document.getElementById('sessionId').value.trim() || generateSessionId();
+                document.getElementById('sessionId').value = voiceSessionId;
+
+                // Initialize audio context (requires user interaction)
+                await initAudioContext();
+
+                // Request microphone access ONCE upfront
+                // IMPORTANT: Enable browser's built-in Echo Cancellation (AEC)
+                log('info', 'Requesting microphone permission with echo cancellation...');
+                try {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            echoCancellation: true,      // Enable AEC - browser suppresses echo at hardware level
+                            noiseSuppression: true,      // Reduce background noise
+                            autoGainControl: true,       // Normalize volume levels
+                            sampleRate: 16000,           // Match Whisper's preferred sample rate
+                            channelCount: 1              // Mono audio is sufficient
+                        }
+                    });
+                    microphoneInitialized = true;
+                    log('info', 'Microphone permission granted');
+
+                    // Setup VAD with the already-granted stream
+                    if (!audioContext) {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    const source = audioContext.createMediaStreamSource(mediaStream);
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 512;
+                    analyser.smoothingTimeConstant = 0.8;
+                    source.connect(analyser);
+                    monitorAudioVisualizer(); // Just for visual feedback, no VAD
+
+                    // Setup MediaRecorder for audio capture (backend STT)
+                    setupMediaRecorder(mediaStream);
+                } catch (micError) {
+                    log('warn', `Microphone access issue: ${micError.message} - continuing anyway`);
+                }
+
+                // Connect WebSocket
+                connectWebSocket();
+
+                // NOTE: SpeechRecognition removed due to browser compatibility issues
+                // Using text input instead - backend STT can be added later
+
+                // Switch UI
+                document.getElementById('setup-section').classList.add('hidden');
+                document.getElementById('session-section').classList.remove('hidden');
+
+                log('sent', `Session started: ${voiceSessionId}`);
+
+            } catch (e) {
+                log('error', `Failed to start session: ${e.message}`);
+                showError(e.message);
+                startBtn.disabled = false;
+                startBtn.innerHTML = '<span>Start Voice Session</span>';
+            }
+        }
+
+        function sendInterrupt() {
+            sendMessage('interrupt', {
+                reason: 'user_initiated',
+                playbackPosition: playbackPosition
+            });
+
+            // Stop local playback immediately
+            stopAudioPlayback();
+            updateSessionState('INTERRUPTED');
+        }
+
+        /**
+         * Send a text message (for text input fallback).
+         */
+        function sendTextMessage() {
+            const input = document.getElementById('userTextInput');
+            const text = input.value.trim();
+
+            if (!text) {
+                return;
+            }
+
+            log('sent', `Sending text message: "${text}"`);
+            addMessage('user', text);
+            input.value = '';
+
+            // Send as speech_end with the text
+            sendMessage('speech_end', {
+                transcript: text,
+                duration: 0,
+                isTextInput: true
+            });
+
+            document.getElementById('liveTranscript').textContent = 'Processing...';
+            updateSessionState('PROCESSING');
+        }
+
+        function endSession() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                sendMessage('session_end', {
+                    reason: 'user_ended'
+                });
+            }
+            cleanup();
+        }
+
+        function cleanup() {
+            // Stop WebSocket
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+
+            // Stop audio playback
+            stopAudioPlayback();
+            stopPingPong();
+
+            // Stop recording if active
+            if (isRecording && mediaRecorder) {
+                try {
+                    mediaRecorder.stop();
+                } catch (e) {}
+            }
+            isRecording = false;
+            mediaRecorder = null;
+            audioChunks = [];
+
+            // Stop VAD monitoring
+            stopVADMonitoring();
+
+            // Stop microphone
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            analyser = null;
+
+            // Reset state
+            voiceSessionId = null;
+            reconnectAttempts = 0;
+            microphoneInitialized = false;
+            recordingStartTime = null;
+            sessionConfirmed = false;
+            isUserTurn = false;
+            ttsPlaybackActive = false;
+            postPlaybackCooldown = false;
+            if (recordingTimeout) {
+                clearTimeout(recordingTimeout);
+                recordingTimeout = null;
+            }
+
+            // Reset UI
+            document.getElementById('setup-section').classList.remove('hidden');
+            document.getElementById('session-section').classList.add('hidden');
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('startBtn').innerHTML = '<span>Start Voice Session</span>';
+            document.getElementById('transcript').innerHTML = '<h3>Conversation</h3>';
+            document.getElementById('debugLog').innerHTML = '';
+            updateConnectionStatus('disconnected');
+            updateSessionState('IDLE');
+        }
+
+        // =====================================================
+        // PAGE LIFECYCLE
+        // =====================================================
+        window.addEventListener('beforeunload', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                sendMessage('session_end', { reason: 'page_unload' });
+            }
+            cleanup();
+        });
+
+        // Check browser support on load
+        window.addEventListener('load', () => {
+            // Check for Web Audio API
+            if (!window.AudioContext && !window.webkitAudioContext) {
+                showError('Web Audio API not supported. Please use a modern browser.');
+                document.getElementById('startBtn').disabled = true;
+                return;
+            }
+
+            // Check for MediaRecorder (needed for audio capture)
+            if (!window.MediaRecorder) {
+                showError('MediaRecorder not supported. Please use a modern browser.');
+                document.getElementById('startBtn').disabled = true;
+                return;
+            }
+
+            // Check for getUserMedia
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showError('getUserMedia not supported. Please use a modern browser with HTTPS.');
+                document.getElementById('startBtn').disabled = true;
+                return;
+            }
+
+            log('info', 'Browser supports all required features (Web Audio, MediaRecorder, getUserMedia)');
+        });
+    </script>
+</body>
+</html>

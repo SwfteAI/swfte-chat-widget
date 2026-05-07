@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swfte Voice ChatFlow - Real-Time Voice Testing</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+        }
+
+        .app {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 30px 0;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .header .subtitle {
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        /* Main Card */
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        /* Connection Status */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #64748b;
+        }
+
+        .status-dot.connected {
+            background: #22c55e;
+            box-shadow: 0 0 10px #22c55e50;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connecting {
+            background: #f59e0b;
+            animation: blink 1s infinite;
+        }
+
+        .status-dot.error {
+            background: #ef4444;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .status-text {
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .session-id {
+            font-size: 11px;
+            color: #64748b;
+            font-family: monospace;
+        }
+
+        /* Configuration */
+        .config-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .config-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .config-field.full-width {
+            grid-column: span 2;
+        }
+
+        .config-field label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .config-field input, .config-field select {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 10px;
+            padding: 12px 14px;
+            color: #e2e8f0;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .config-field input:focus, .config-field select:focus {
+            outline: none;
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+        }
+
+        .config-field input::placeholder {
+            color: #64748b;
+        }
+
+        /* Voice State Display */
+        .voice-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            margin-bottom: 24px;
+        }
+
+        .state-icon {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            margin-bottom: 16px;
+            transition: all 0.3s;
+        }
+
+        .state-icon.idle {
+            background: linear-gradient(135deg, #475569, #334155);
+        }
+
+        .state-icon.listening {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            animation: pulse-scale 1.5s infinite;
+        }
+
+        .state-icon.processing {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            animation: spin 1s linear infinite;
+        }
+
+        .state-icon.speaking {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            animation: pulse-scale 0.5s infinite;
+        }
+
+        .state-icon.error {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        @keyframes pulse-scale {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .state-label {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .state-detail {
+            font-size: 14px;
+            color: #94a3b8;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        /* Audio Visualizer */
+        .audio-visualizer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            height: 60px;
+            padding: 10px;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .audio-bar {
+            width: 6px;
+            height: 20px;
+            background: linear-gradient(180deg, #60a5fa, #3b82f6);
+            border-radius: 3px;
+            transition: height 0.05s ease;
+        }
+
+        .audio-visualizer.user .audio-bar {
+            background: linear-gradient(180deg, #22c55e, #16a34a);
+        }
+
+        /* Live Transcript */
+        .live-transcript {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            min-height: 50px;
+        }
+
+        .live-transcript-label {
+            font-size: 11px;
+            color: #fbbf24;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .live-transcript-text {
+            font-size: 15px;
+            color: #fef3c7;
+            font-style: italic;
+        }
+
+        /* Conversation */
+        .conversation {
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 12px;
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .conversation-header {
+            font-size: 11px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            margin-left: 60px;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant {
+            background: rgba(71, 85, 105, 0.5);
+            margin-right: 60px;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.system {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .message-role {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.7;
+            margin-bottom: 4px;
+        }
+
+        /* Control Buttons */
+        .controls {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+
+        .btn-start:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-end {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .btn-end:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-mute {
+            background: rgba(100, 116, 139, 0.3);
+            color: #e2e8f0;
+            flex: none;
+            width: 60px;
+        }
+
+        .btn-mute.active {
+            background: rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        /* Collected Data Panel */
+        .collected-data {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .collected-data h3 {
+            font-size: 14px;
+            color: #22c55e;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .data-field {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(34, 197, 94, 0.1);
+        }
+
+        .data-field:last-child {
+            border-bottom: none;
+        }
+
+        .data-field-name {
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        .data-field-value {
+            color: #22c55e;
+            font-weight: 500;
+            font-size: 13px;
+        }
+
+        .data-field-value.pending {
+            color: #64748b;
+            font-style: italic;
+        }
+
+        /* Debug Panel */
+        .debug-panel {
+            background: #0f172a;
+            border-radius: 12px;
+            padding: 16px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 11px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .debug-panel h4 {
+            font-size: 10px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .debug-line {
+            color: #94a3b8;
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .debug-line.sent {
+            color: #4ade80;
+        }
+
+        .debug-line.received {
+            color: #60a5fa;
+        }
+
+        .debug-line.error {
+            color: #f87171;
+        }
+
+        /* Hidden class */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Error banner */
+        .error-banner {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 14px 16px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="header">
+            <h1>🎙️ Voice ChatFlow</h1>
+            <p class="subtitle">Real-Time Voice Testing with WebSocket</p>
+        </div>
+
+        <div class="card">
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span class="status-text" id="statusText">Disconnected</span>
+                </div>
+                <span class="session-id" id="sessionIdDisplay"></span>
+            </div>
+
+            <!-- Error Banner -->
+            <div class="error-banner hidden" id="errorBanner">
+                <span>⚠️</span>
+                <span id="errorText"></span>
+            </div>
+
+            <!-- Configuration Section (shown when disconnected) -->
+            <div id="configSection">
+                <div class="config-section">
+                    <div class="config-field">
+                        <label>WebSocket URL</label>
+                        <input type="text" id="wsUrl" value="ws://localhost:9999" placeholder="ws://localhost:9999">
+                    </div>
+                    <div class="config-field">
+                        <label>Workspace ID</label>
+                        <input type="text" id="workspaceId" value="test-voice-e2e" placeholder="workspace-id">
+                    </div>
+                    <div class="config-field full-width">
+                        <label>ChatFlow ID</label>
+                        <input type="text" id="chatFlowId" placeholder="Enter ChatFlow ID or leave empty to create from template">
+                    </div>
+                    <div class="config-field">
+                        <label>Voice</label>
+                        <select id="voiceSelect">
+                            <option value="21m00Tcm4TlvDq8ikWAM">Rachel (Default)</option>
+                            <option value="EXAVITQu4vr4xnSDxMaL">Bella</option>
+                            <option value="AZnzlk1XvdvUeBnXmlld">Domi</option>
+                            <option value="MF3mGyEYCl7XYWbV9V6O">Elli</option>
+                        </select>
+                    </div>
+                    <div class="config-field">
+                        <label>Speaking Speed</label>
+                        <select id="speedSelect">
+                            <option value="0.8">Slow (0.8x)</option>
+                            <option value="1.0" selected>Normal (1.0x)</option>
+                            <option value="1.2">Fast (1.2x)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-start" id="startBtn" onclick="startSession()">
+                        <span>🎙️</span>
+                        <span>Start Voice Session</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Active Session Section (shown when connected) -->
+            <div id="sessionSection" class="hidden">
+                <!-- Voice State Display -->
+                <div class="voice-state">
+                    <div class="state-icon idle" id="stateIcon">
+                        <span id="stateEmoji">⏸️</span>
+                    </div>
+                    <div class="state-label" id="stateLabel">Ready</div>
+                    <div class="state-detail" id="stateDetail">Click Start to begin your voice session</div>
+                </div>
+
+                <!-- Audio Visualizer -->
+                <div class="audio-visualizer" id="audioVisualizer">
+                    <div class="audio-bar"></div>
+                    <div class="audio-bar"></div>
+                    <div class="audio-bar"></div>
+                    <div class="audio-bar"></div>
+                    <div class="audio-bar"></div>
+                    <div class="audio-bar"></div>
+                    <div class="audio-bar"></div>
+                    <div class="audio-bar"></div>
+                    <div class="audio-bar"></div>
+                    <div class="audio-bar"></div>
+                    <div class="audio-bar"></div>
+                    <div class="audio-bar"></div>
+                </div>
+
+                <!-- Live Transcript -->
+                <div class="live-transcript">
+                    <div class="live-transcript-label">Live Transcript</div>
+                    <div class="live-transcript-text" id="liveTranscript">Listening...</div>
+                </div>
+
+                <!-- Conversation History -->
+                <div class="conversation" id="conversation">
+                    <div class="conversation-header">Conversation</div>
+                </div>
+
+                <!-- Collected Data -->
+                <div class="collected-data hidden" id="collectedData">
+                    <h3>📋 Collected Information</h3>
+                    <div id="dataFields"></div>
+                </div>
+
+                <!-- Controls -->
+                <div class="controls">
+                    <button class="btn btn-mute" id="muteBtn" onclick="toggleMute()">
+                        <span id="muteIcon">🎤</span>
+                    </button>
+                    <button class="btn btn-end" id="endBtn" onclick="endSession()">
+                        <span>⏹️</span>
+                        <span>End Session</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Debug Panel -->
+        <div class="card">
+            <div class="debug-panel" id="debugPanel">
+                <h4>WebSocket Debug Log</h4>
+                <div id="debugLog"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // STATE
+        // ============================================
+        let ws = null;
+        let voiceSessionId = null;
+        let chatFlowSessionId = null;
+        let currentState = 'idle';
+        let audioContext = null;
+        let mediaStream = null;
+        let analyser = null;
+        let recognition = null;
+        let pingInterval = null;
+        let isMuted = false;
+
+        // Audio playback
+        let audioQueue = [];
+        let isPlaying = false;
+        let currentAudioSource = null;
+
+        // VAD
+        let vadActive = false;
+        let isSpeaking = false;
+        let speechStartTime = null;
+        let silenceTimeout = null;
+        const SPEECH_THRESHOLD = 0.02;
+        const SILENCE_DURATION = 1500;
+
+        // Collected data
+        let collectedData = {};
+
+        // ============================================
+        // UTILITIES
+        // ============================================
+        function log(type, message) {
+            const debugLog = document.getElementById('debugLog');
+            const line = document.createElement('div');
+            line.className = `debug-line ${type}`;
+            const time = new Date().toLocaleTimeString();
+            line.textContent = `[${time}] ${message}`;
+            debugLog.appendChild(line);
+            debugLog.scrollTop = debugLog.scrollHeight;
+
+            while (debugLog.children.length > 100) {
+                debugLog.removeChild(debugLog.firstChild);
+            }
+        }
+
+        function showError(message) {
+            const banner = document.getElementById('errorBanner');
+            document.getElementById('errorText').textContent = message;
+            banner.classList.remove('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('errorBanner').classList.add('hidden');
+        }
+
+        function updateStatus(status, text) {
+            const dot = document.getElementById('statusDot');
+            dot.className = 'status-dot ' + status;
+            document.getElementById('statusText').textContent = text;
+        }
+
+        function updateState(state, detail = '') {
+            currentState = state;
+            const icon = document.getElementById('stateIcon');
+            const emoji = document.getElementById('stateEmoji');
+            const label = document.getElementById('stateLabel');
+            const detailEl = document.getElementById('stateDetail');
+
+            icon.className = 'state-icon ' + state;
+
+            const states = {
+                'idle': { emoji: '⏸️', label: 'Ready', detail: 'Waiting to start...' },
+                'listening': { emoji: '👂', label: 'Listening', detail: 'Speak now...' },
+                'processing': { emoji: '⚙️', label: 'Processing', detail: 'Understanding your message...' },
+                'speaking': { emoji: '🗣️', label: 'Speaking', detail: 'Agent is responding...' },
+                'error': { emoji: '⚠️', label: 'Error', detail: 'Something went wrong' },
+            };
+
+            const config = states[state] || states.idle;
+            emoji.textContent = config.emoji;
+            label.textContent = config.label;
+            detailEl.textContent = detail || config.detail;
+        }
+
+        function addMessage(role, text) {
+            const conv = document.getElementById('conversation');
+            const msg = document.createElement('div');
+            msg.className = 'message ' + role;
+
+            if (role !== 'system') {
+                const roleLabel = document.createElement('div');
+                roleLabel.className = 'message-role';
+                roleLabel.textContent = role === 'user' ? 'You' : 'Agent';
+                msg.appendChild(roleLabel);
+            }
+
+            const textEl = document.createElement('div');
+            textEl.textContent = text;
+            msg.appendChild(textEl);
+
+            conv.appendChild(msg);
+            conv.scrollTop = conv.scrollHeight;
+        }
+
+        function updateCollectedData(data) {
+            collectedData = { ...collectedData, ...data };
+            const container = document.getElementById('collectedData');
+            const fields = document.getElementById('dataFields');
+
+            if (Object.keys(collectedData).length > 0) {
+                container.classList.remove('hidden');
+                fields.innerHTML = '';
+
+                for (const [key, value] of Object.entries(collectedData)) {
+                    const field = document.createElement('div');
+                    field.className = 'data-field';
+                    field.innerHTML = `
+                        <span class="data-field-name">${key}</span>
+                        <span class="data-field-value ${value ? '' : 'pending'}">${value || 'Pending...'}</span>
+                    `;
+                    fields.appendChild(field);
+                }
+            }
+        }
+
+        // ============================================
+        // CHATFLOW CREATION
+        // ============================================
+        async function createChatFlow() {
+            const wsUrl = document.getElementById('wsUrl').value;
+            const httpUrl = wsUrl.replace('ws://', 'http://').replace('wss://', 'https://');
+            const workspaceId = document.getElementById('workspaceId').value;
+
+            log('sent', 'Creating ChatFlow from template...');
+
+            try {
+                // Create from template
+                const createResponse = await fetch(`${httpUrl}/v2/chatflows/builder/from-template/SALES_LEAD_QUALIFICATION`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Workspace-Id': workspaceId
+                    },
+                    body: JSON.stringify({
+                        name: 'Voice Test ChatFlow',
+                        description: 'Created for voice testing'
+                    })
+                });
+
+                if (!createResponse.ok) {
+                    throw new Error(`Failed to create ChatFlow: ${createResponse.status}`);
+                }
+
+                const chatFlow = await createResponse.json();
+                log('received', `Created ChatFlow: ${chatFlow.id}`);
+
+                // Deploy the ChatFlow
+                const deployResponse = await fetch(`${httpUrl}/v2/chatflows/${chatFlow.id}/deploy`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Workspace-Id': workspaceId
+                    }
+                });
+
+                if (!deployResponse.ok) {
+                    throw new Error(`Failed to deploy ChatFlow: ${deployResponse.status}`);
+                }
+
+                log('received', `Deployed ChatFlow: ${chatFlow.id}`);
+                return chatFlow.id;
+
+            } catch (error) {
+                log('error', `ChatFlow creation failed: ${error.message}`);
+                throw error;
+            }
+        }
+
+        // ============================================
+        // WEBSOCKET
+        // ============================================
+        function connectWebSocket(chatFlowId) {
+            const wsUrl = document.getElementById('wsUrl').value;
+            const fullUrl = `${wsUrl}/ws/voice`;
+
+            log('sent', `Connecting to ${fullUrl}`);
+            updateStatus('connecting', 'Connecting...');
+
+            ws = new WebSocket(fullUrl);
+
+            ws.onopen = () => {
+                log('received', 'WebSocket connected');
+                updateStatus('connected', 'Connected');
+                startPingPong();
+
+                // Send session_start
+                sendSessionStart(chatFlowId);
+            };
+
+            ws.onmessage = (event) => {
+                handleMessage(event.data);
+            };
+
+            ws.onerror = (error) => {
+                log('error', `WebSocket error: ${error.message || 'Unknown'}`);
+            };
+
+            ws.onclose = (event) => {
+                log('error', `WebSocket closed: ${event.code} ${event.reason}`);
+                updateStatus('', 'Disconnected');
+                stopPingPong();
+            };
+        }
+
+        function sendSessionStart(chatFlowId) {
+            const workspaceId = document.getElementById('workspaceId').value;
+            const voiceId = document.getElementById('voiceSelect').value;
+            const speed = parseFloat(document.getElementById('speedSelect').value);
+
+            const message = {
+                type: 'session_start',
+                chatFlowId: chatFlowId,
+                workspaceId: workspaceId,
+                voiceConfig: {
+                    voiceId: voiceId,
+                    voiceName: document.getElementById('voiceSelect').options[document.getElementById('voiceSelect').selectedIndex].text,
+                    speakingSpeed: speed,
+                    language: 'en-US',
+                    useAudioTags: true
+                },
+                timestamp: Date.now()
+            };
+
+            ws.send(JSON.stringify(message));
+            log('sent', `session_start: chatFlowId=${chatFlowId}`);
+        }
+
+        function sendMessage(type, payload = {}) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                log('error', 'WebSocket not connected');
+                return;
+            }
+
+            const message = {
+                type,
+                timestamp: Date.now(),
+                ...payload
+            };
+
+            ws.send(JSON.stringify(message));
+            log('sent', `${type}: ${JSON.stringify(payload).substring(0, 80)}`);
+        }
+
+        function handleMessage(data) {
+            try {
+                const message = JSON.parse(data);
+                log('received', `${message.type}`);
+
+                switch (message.type) {
+                    case 'session_start':
+                        handleSessionStart(message);
+                        break;
+                    case 'pong':
+                        break;
+                    case 'agent_response':
+                        handleAgentResponse(message);
+                        break;
+                    case 'audio_chunk':
+                        handleAudioChunk(message);
+                        break;
+                    case 'state_change':
+                        updateState(message.state.toLowerCase(), message.reason);
+                        break;
+                    case 'interrupt_ack':
+                        stopAudioPlayback();
+                        break;
+                    case 'interrupt_response':
+                        addMessage('assistant', `[Interrupted] ${message.text}`);
+                        break;
+                    case 'error':
+                        log('error', `${message.code}: ${message.message}`);
+                        showError(message.message);
+                        updateState('error', message.message);
+                        break;
+                    default:
+                        log('received', `Unknown: ${message.type}`);
+                }
+            } catch (e) {
+                log('error', `Parse error: ${e.message}`);
+            }
+        }
+
+        function handleSessionStart(message) {
+            voiceSessionId = message.voiceSessionId;
+            chatFlowSessionId = message.chatFlowSessionId;
+
+            document.getElementById('sessionIdDisplay').textContent = `Session: ${voiceSessionId?.substring(0, 8)}...`;
+
+            // Switch to session view
+            document.getElementById('configSection').classList.add('hidden');
+            document.getElementById('sessionSection').classList.remove('hidden');
+
+            updateState('listening', 'Session started - speak now!');
+            addMessage('system', 'Voice session started');
+
+            if (message.greetingMessage) {
+                addMessage('assistant', message.greetingMessage);
+            }
+
+            // NOW enable VAD and speech recognition (after session is confirmed)
+            vadActive = true;
+            monitorVAD();
+            initSpeechRecognition();
+            log('sent', 'VAD and speech recognition enabled');
+        }
+
+        function handleAgentResponse(message) {
+            if (message.text) {
+                addMessage('assistant', message.text);
+            }
+
+            if (message.collectedData) {
+                updateCollectedData(message.collectedData);
+            }
+
+            if (message.isComplete) {
+                addMessage('system', '✅ Conversation complete!');
+                updateState('idle', 'All information collected!');
+            }
+        }
+
+        function handleAudioChunk(message) {
+            if (!message.data) return;
+
+            // Decode base64 and queue
+            const binaryString = atob(message.data);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+
+            audioQueue.push({
+                data: bytes.buffer,
+                index: message.chunkIndex,
+                isLast: message.isLast
+            });
+
+            // Start playback
+            if (!isPlaying && audioQueue.length >= 2) {
+                updateState('speaking', 'Agent is speaking...');
+                startAudioPlayback();
+            }
+        }
+
+        function startPingPong() {
+            pingInterval = setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    sendMessage('ping');
+                }
+            }, 30000);
+        }
+
+        function stopPingPong() {
+            if (pingInterval) {
+                clearInterval(pingInterval);
+                pingInterval = null;
+            }
+        }
+
+        // ============================================
+        // AUDIO PLAYBACK
+        // ============================================
+        async function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+        }
+
+        async function startAudioPlayback() {
+            if (isPlaying || audioQueue.length === 0) return;
+
+            isPlaying = true;
+            await initAudioContext();
+            playNextChunk();
+        }
+
+        async function playNextChunk() {
+            if (!isPlaying || audioQueue.length === 0 || !audioContext) {
+                isPlaying = false;
+                updateState('listening', 'Your turn to speak...');
+                sendMessage('playback_complete', { utteranceId: 'last' });
+                return;
+            }
+
+            const chunk = audioQueue.shift();
+
+            try {
+                const audioBuffer = await audioContext.decodeAudioData(chunk.data.slice(0));
+                currentAudioSource = audioContext.createBufferSource();
+                currentAudioSource.buffer = audioBuffer;
+                currentAudioSource.connect(audioContext.destination);
+
+                currentAudioSource.onended = playNextChunk;
+                currentAudioSource.start(0);
+
+            } catch (e) {
+                log('error', `Audio decode error: ${e.message}`);
+                playNextChunk();
+            }
+        }
+
+        function stopAudioPlayback() {
+            isPlaying = false;
+            audioQueue = [];
+
+            if (currentAudioSource) {
+                try { currentAudioSource.stop(); } catch (e) {}
+                currentAudioSource = null;
+            }
+        }
+
+        // ============================================
+        // MICROPHONE & VAD
+        // ============================================
+        async function initMicrophone() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                const source = audioContext.createMediaStreamSource(mediaStream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 512;
+                analyser.smoothingTimeConstant = 0.8;
+                source.connect(analyser);
+
+                // NOTE: Don't start VAD monitoring here - wait for session_start confirmation
+                // vadActive and monitorVAD() will be called in handleSessionStart()
+
+                log('sent', 'Microphone initialized');
+
+            } catch (e) {
+                log('error', `Microphone error: ${e.message}`);
+                throw new Error('Microphone access denied');
+            }
+        }
+
+        function monitorVAD() {
+            if (!analyser || !vadActive) return;
+
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+            function check() {
+                if (!vadActive || !analyser) return;
+
+                analyser.getByteFrequencyData(dataArray);
+
+                // Calculate RMS
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) {
+                    sum += dataArray[i] * dataArray[i];
+                }
+                const rms = Math.sqrt(sum / dataArray.length) / 255;
+
+                // Update visualizer
+                updateVisualizer(dataArray);
+
+                // VAD logic
+                if (!isMuted) {
+                    if (rms > SPEECH_THRESHOLD) {
+                        if (!isSpeaking) {
+                            isSpeaking = true;
+                            speechStartTime = Date.now();
+
+                            if (silenceTimeout) {
+                                clearTimeout(silenceTimeout);
+                                silenceTimeout = null;
+                            }
+
+                            sendMessage('speech_start');
+                            document.getElementById('audioVisualizer').classList.add('user');
+
+                            // Interrupt if agent is speaking
+                            if (currentState === 'speaking') {
+                                sendMessage('interrupt', { reason: 'user_speaking' });
+                            }
+                        }
+                    } else if (isSpeaking) {
+                        if (!silenceTimeout) {
+                            silenceTimeout = setTimeout(() => {
+                                isSpeaking = false;
+                                silenceTimeout = null;
+                                document.getElementById('audioVisualizer').classList.remove('user');
+                            }, SILENCE_DURATION);
+                        }
+                    }
+                }
+
+                requestAnimationFrame(check);
+            }
+
+            check();
+        }
+
+        function updateVisualizer(dataArray) {
+            const bars = document.querySelectorAll('.audio-bar');
+            const step = Math.floor(dataArray.length / bars.length);
+
+            bars.forEach((bar, i) => {
+                const value = dataArray[i * step];
+                const height = Math.max(8, (value / 255) * 50);
+                bar.style.height = `${height}px`;
+            });
+        }
+
+        // ============================================
+        // SPEECH RECOGNITION
+        // ============================================
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (!SpeechRecognition) {
+                log('error', 'Speech Recognition not supported');
+                showError('Speech Recognition not supported. Use Chrome or Edge.');
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                log('sent', 'Speech recognition started');
+            };
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                // Show interim
+                if (interimTranscript) {
+                    document.getElementById('liveTranscript').textContent = `"${interimTranscript}"`;
+                }
+
+                // Send final
+                if (finalTranscript.trim()) {
+                    const text = finalTranscript.trim();
+                    document.getElementById('liveTranscript').textContent = 'Processing...';
+                    addMessage('user', text);
+                    updateState('processing', 'Understanding your message...');
+
+                    sendMessage('speech_end', {
+                        transcript: text,
+                        confidence: event.results[event.resultIndex][0].confidence || 0.9,
+                        isFinal: true
+                    });
+                }
+            };
+
+            recognition.onerror = (event) => {
+                if (event.error !== 'no-speech' && event.error !== 'aborted') {
+                    log('error', `Recognition error: ${event.error}`);
+                }
+            };
+
+            recognition.onend = () => {
+                // Auto-restart
+                if (vadActive && !isMuted) {
+                    setTimeout(() => {
+                        try { recognition.start(); } catch (e) {}
+                    }, 100);
+                }
+            };
+
+            try {
+                recognition.start();
+            } catch (e) {
+                log('error', `Recognition start failed: ${e.message}`);
+            }
+        }
+
+        // ============================================
+        // SESSION CONTROL
+        // ============================================
+        async function startSession() {
+            const startBtn = document.getElementById('startBtn');
+            startBtn.disabled = true;
+            startBtn.innerHTML = '<span>⏳</span><span>Starting...</span>';
+            hideError();
+
+            try {
+                // Init audio context (requires user interaction)
+                await initAudioContext();
+
+                // Init microphone
+                await initMicrophone();
+
+                // Get or create ChatFlow
+                let chatFlowId = document.getElementById('chatFlowId').value.trim();
+                if (!chatFlowId) {
+                    chatFlowId = await createChatFlow();
+                    document.getElementById('chatFlowId').value = chatFlowId;
+                }
+
+                // Connect WebSocket - VAD and speech recognition will be enabled
+                // after the session_start response is received in handleSessionStart()
+                connectWebSocket(chatFlowId);
+
+            } catch (e) {
+                log('error', `Start failed: ${e.message}`);
+                showError(e.message);
+                startBtn.disabled = false;
+                startBtn.innerHTML = '<span>🎙️</span><span>Start Voice Session</span>';
+            }
+        }
+
+        function endSession() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                sendMessage('session_end', { reason: 'user_ended' });
+            }
+            cleanup();
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const btn = document.getElementById('muteBtn');
+            const icon = document.getElementById('muteIcon');
+
+            if (isMuted) {
+                btn.classList.add('active');
+                icon.textContent = '🔇';
+                if (recognition) {
+                    try { recognition.stop(); } catch (e) {}
+                }
+            } else {
+                btn.classList.remove('active');
+                icon.textContent = '🎤';
+                if (recognition) {
+                    try { recognition.start(); } catch (e) {}
+                }
+            }
+        }
+
+        function cleanup() {
+            vadActive = false;
+            stopPingPong();
+            stopAudioPlayback();
+
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(t => t.stop());
+                mediaStream = null;
+            }
+
+            if (recognition) {
+                try { recognition.stop(); } catch (e) {}
+                recognition = null;
+            }
+
+            analyser = null;
+            voiceSessionId = null;
+            chatFlowSessionId = null;
+            collectedData = {};
+            isMuted = false;
+
+            // Reset UI
+            document.getElementById('configSection').classList.remove('hidden');
+            document.getElementById('sessionSection').classList.add('hidden');
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('startBtn').innerHTML = '<span>🎙️</span><span>Start Voice Session</span>';
+            document.getElementById('collectedData').classList.add('hidden');
+            document.getElementById('conversation').innerHTML = '<div class="conversation-header">Conversation</div>';
+            document.getElementById('sessionIdDisplay').textContent = '';
+            updateStatus('', 'Disconnected');
+            updateState('idle');
+        }
+
+        // Page unload cleanup
+        window.addEventListener('beforeunload', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                sendMessage('session_end', { reason: 'page_unload' });
+            }
+            cleanup();
+        });
+
+        // Check browser support
+        window.addEventListener('load', () => {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showError('Speech Recognition not supported. Please use Chrome or Edge.');
+                document.getElementById('startBtn').disabled = true;
+            }
+        });
+    </script>
+</body>
+</html>

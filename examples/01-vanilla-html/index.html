@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swfte Chat Widget - Vanilla JS Example</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      text-align: center;
+      color: white;
+      margin-bottom: 40px;
+    }
+
+    .hero h1 {
+      font-size: 2.5rem;
+      margin-bottom: 16px;
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      opacity: 0.9;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+      margin-bottom: 24px;
+    }
+
+    .card h2 {
+      color: #1f2937;
+      margin-bottom: 16px;
+    }
+
+    .card p {
+      color: #6b7280;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .feature {
+      background: #f3f4f6;
+      padding: 16px;
+      border-radius: 8px;
+    }
+
+    .feature h3 {
+      color: #374151;
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
+
+    .feature p {
+      color: #6b7280;
+      font-size: 0.875rem;
+      margin: 0;
+    }
+
+    .code-block {
+      background: #1f2937;
+      color: #e5e7eb;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+
+    .code-block .comment {
+      color: #6b7280;
+    }
+
+    .code-block .keyword {
+      color: #c084fc;
+    }
+
+    .code-block .string {
+      color: #86efac;
+    }
+
+    .code-block .function {
+      color: #60a5fa;
+    }
+
+    .btn {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>Swfte Chat Widget</h1>
+      <p>AI-powered customer support chat for any website</p>
+    </div>
+
+    <div class="card">
+      <h2>Welcome to Our Demo</h2>
+      <p>
+        This example demonstrates how to integrate the Swfte Chat Widget into any
+        HTML website using vanilla JavaScript. Click the chat bubble in the bottom-right
+        corner to start a conversation with our AI assistant.
+      </p>
+
+      <div class="features">
+        <div class="feature">
+          <h3>Easy Integration</h3>
+          <p>Just add a script tag and initialize with your widget ID</p>
+        </div>
+        <div class="feature">
+          <h3>Customizable Themes</h3>
+          <p>Match your brand with custom colors and styles</p>
+        </div>
+        <div class="feature">
+          <h3>Real-time Messaging</h3>
+          <p>WebSocket-powered instant message delivery</p>
+        </div>
+        <div class="feature">
+          <h3>AI-Powered</h3>
+          <p>Connect to any AI agent for intelligent responses</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Integration Code</h2>
+      <p>Here's how easy it is to add the chat widget to your website:</p>
+
+      <div class="code-block">
+<span class="comment">// Include the SDK (via CDN or npm)</span>
+&lt;script src="https://cdn.swfte.com/chat-widget.umd.js"&gt;&lt;/script&gt;
+
+&lt;script&gt;
+  <span class="comment">// Initialize the chat widget</span>
+  <span class="keyword">const</span> client = SwfteChat.<span class="function">createSwfteChatClient</span>({
+    baseUrl: <span class="string">'https://api.swfte.com'</span>,
+    widgetId: <span class="string">'your-widget-id'</span>,
+  });
+
+  <span class="comment">// Create and mount the widget</span>
+  <span class="keyword">const</span> widget = client.<span class="function">createWidget</span>({
+    position: <span class="string">'bottom-right'</span>,
+    theme: {
+      colors: { primary: <span class="string">'#667eea'</span> }
+    }
+  });
+
+  widget.<span class="function">mount</span>(document.body);
+&lt;/script&gt;
+      </div>
+
+      <div class="btn-group">
+        <button class="btn" onclick="openChat()">Open Chat</button>
+        <button class="btn btn-secondary" onclick="changeTheme()">Change Theme</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Programmatic Control</h2>
+      <p>
+        The SDK provides full programmatic control over the widget. You can
+        open/close the chat, send messages, identify users, and more.
+      </p>
+
+      <div class="code-block">
+<span class="comment">// Identify a logged-in user</span>
+client.<span class="function">identify</span>({
+  email: <span class="string">'user@example.com'</span>,
+  name: <span class="string">'John Doe'</span>,
+  metadata: { plan: <span class="string">'premium'</span> }
+});
+
+<span class="comment">// Listen for events</span>
+client.<span class="function">on</span>(<span class="string">'message:received'</span>, (message) => {
+  console.<span class="function">log</span>(<span class="string">'New message:'</span>, message);
+});
+
+<span class="comment">// Send a message programmatically</span>
+client.<span class="function">sendMessage</span>(<span class="string">'Hello, I need help!'</span>);
+      </div>
+    </div>
+  </div>
+
+  <!-- Swfte Chat Widget SDK -->
+  <!-- In production, use: <script src="https://cdn.swfte.com/chat-widget.umd.js"></script> -->
+  <!-- For local development, use the built UMD bundle -->
+  <script src="../../dist/index.umd.js"></script>
+
+  <script>
+    // Demo configuration
+    const config = {
+      baseUrl: 'http://localhost:8307',
+      widgetId: 'sdk-demo',
+      agentId: '77a3b62c-c137-44ff-b7ee-5ffc497f7949', // SDK Test Agent
+    };
+
+    // Initialize the client
+    let client;
+    let widget;
+    let currentTheme = 'purple';
+
+    const themes = {
+      purple: { colors: { primary: '#667eea' } },
+      blue: { colors: { primary: '#3b82f6' } },
+      green: { colors: { primary: '#10b981' } },
+      orange: { colors: { primary: '#f59e0b' } },
+    };
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        // Create the chat client
+        client = SwfteChat.createSwfteChatClient(config);
+
+        // Create the widget with custom theme
+        widget = client.createWidget({
+          position: 'bottom-right',
+          theme: themes.purple,
+          greeting: 'Hi there! How can I help you today?',
+        });
+
+        // Mount to the page
+        widget.mount(document.body);
+
+        console.log('Swfte Chat Widget initialized successfully!');
+      } catch (error) {
+        console.error('Failed to initialize chat widget:', error);
+      }
+    });
+
+    // Open chat programmatically
+    function openChat() {
+      if (widget) {
+        widget.open();
+      }
+    }
+
+    // Cycle through themes
+    function changeTheme() {
+      const themeNames = Object.keys(themes);
+      const currentIndex = themeNames.indexOf(currentTheme);
+      const nextIndex = (currentIndex + 1) % themeNames.length;
+      currentTheme = themeNames[nextIndex];
+
+      if (widget) {
+        widget.setTheme(themes[currentTheme]);
+        console.log('Theme changed to:', currentTheme);
+      }
+    }
+  </script>
+</body>
+</html>

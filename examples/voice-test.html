@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swfte Voice ChatFlow Test</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a1a2e;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .call-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 20px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-radius: 16px;
+            margin-bottom: 25px;
+            color: white;
+        }
+
+        .call-status.active {
+            animation: pulse-bg 2s infinite;
+        }
+
+        @keyframes pulse-bg {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+
+        .call-icon {
+            font-size: 32px;
+            animation: ring 1s ease-in-out infinite;
+        }
+
+        @keyframes ring {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(15deg); }
+            75% { transform: rotate(-15deg); }
+        }
+
+        .call-status.active .call-icon {
+            animation: none;
+        }
+
+        .call-info {
+            text-align: left;
+        }
+
+        .call-info .title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .call-info .duration {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .activity-indicators {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .indicator {
+            text-align: center;
+            padding: 15px 20px;
+            border-radius: 12px;
+            background: #f3f4f6;
+            min-width: 120px;
+        }
+
+        .indicator.speaking {
+            background: #dbeafe;
+            animation: pulse-indicator 0.5s infinite;
+        }
+
+        .indicator.listening {
+            background: #dcfce7;
+        }
+
+        @keyframes pulse-indicator {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        .indicator-icon {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .indicator-label {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .live-transcript {
+            text-align: center;
+            min-height: 40px;
+            padding: 15px;
+            background: #fef3c7;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 15px;
+            color: #92400e;
+        }
+
+        .transcript-area {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 200px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .transcript-area h3 {
+            font-size: 12px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message.user {
+            background: #e0e7ff;
+            color: #3730a3;
+            margin-left: 40px;
+        }
+
+        .message.assistant {
+            background: #f3f4f6;
+            color: #374151;
+            margin-right: 40px;
+        }
+
+        .message.system {
+            background: #fef3c7;
+            color: #92400e;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .collected-data {
+            background: #ecfdf5;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .collected-data h3 {
+            font-size: 12px;
+            color: #065f46;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .data-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            font-size: 13px;
+        }
+
+        .data-item:last-child {
+            border-bottom: none;
+        }
+
+        .data-label {
+            color: #6b7280;
+        }
+
+        .data-value {
+            color: #065f46;
+            font-weight: 500;
+            max-width: 200px;
+            text-align: right;
+        }
+
+        .config-section {
+            margin-bottom: 25px;
+        }
+
+        .config-section label {
+            display: block;
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 6px;
+        }
+
+        .config-section input, .config-section select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .btn-start {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-start:hover {
+            opacity: 0.9;
+        }
+
+        .btn-start:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-end {
+            width: 100%;
+            padding: 14px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .error-banner {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .permission-prompt {
+            text-align: center;
+            padding: 30px;
+            background: #f0f9ff;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .permission-prompt .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .permission-prompt p {
+            color: #0369a1;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Swfte Voice Test</h1>
+        <p class="subtitle">Real-time Voice ChatFlow - Like a Phone Call</p>
+
+        <!-- Setup Section -->
+        <div id="setup-section">
+            <div class="config-section">
+                <label>Service URL</label>
+                <input type="text" id="serviceUrl" value="http://localhost:4444" />
+            </div>
+
+            <div class="config-section">
+                <label>Workspace ID</label>
+                <input type="text" id="workspaceId" value="test-voice-e2e" />
+            </div>
+
+            <div class="config-section">
+                <label>ChatFlow Template</label>
+                <select id="template">
+                    <option value="SALES_LEAD_QUALIFICATION">Sales Lead Qualification</option>
+                    <option value="RECRUITMENT_SCREENING">Recruitment Screening</option>
+                    <option value="CUSTOMER_SUPPORT">Customer Support</option>
+                </select>
+            </div>
+
+            <div id="errorBanner" class="error-banner hidden"></div>
+
+            <button class="btn-start" id="startBtn" onclick="startCall()">
+                <span>Start Call</span>
+            </button>
+        </div>
+
+        <!-- Voice Call Section -->
+        <div id="call-section" class="hidden">
+            <div class="call-status active" id="callStatus">
+                <div class="call-icon">📞</div>
+                <div class="call-info">
+                    <div class="title">Call In Progress</div>
+                    <div class="duration" id="callDuration">00:00</div>
+                </div>
+            </div>
+
+            <div class="activity-indicators">
+                <div class="indicator" id="agentIndicator">
+                    <div class="indicator-icon">🤖</div>
+                    <div class="indicator-label">Agent</div>
+                </div>
+                <div class="indicator listening" id="youIndicator">
+                    <div class="indicator-icon">🎤</div>
+                    <div class="indicator-label">You (listening)</div>
+                </div>
+            </div>
+
+            <div class="live-transcript" id="liveTranscript">
+                Listening for your voice...
+            </div>
+
+            <div class="transcript-area" id="transcript">
+                <h3>Conversation</h3>
+            </div>
+
+            <div class="collected-data" id="collectedData">
+                <h3>Collected Data (0/7)</h3>
+                <div id="dataItems">
+                    <p style="color: #9ca3af; font-size: 13px;">No data collected yet</p>
+                </div>
+            </div>
+
+            <button class="btn-end" onclick="endCall()">
+                <span>End Call</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let chatflowId = null;
+        let sessionId = null;
+        let recognition = null;
+        let callStartTime = null;
+        let durationInterval = null;
+        let isProcessing = false;
+        let pendingInput = '';
+        let isSpeaking = false;  // Block all input while agent speaks
+        let lastSpokenText = ''; // Track what agent said to filter echoes
+
+        const serviceUrl = () => document.getElementById('serviceUrl').value;
+        const workspaceId = () => document.getElementById('workspaceId').value;
+
+        // Check for Speech Recognition support
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            document.getElementById('errorBanner').textContent =
+                'Speech Recognition not supported. Please use Chrome or Edge.';
+            document.getElementById('errorBanner').classList.remove('hidden');
+            document.getElementById('startBtn').disabled = true;
+        }
+
+        // API helper
+        async function api(method, endpoint, data = null) {
+            const url = `${serviceUrl()}${endpoint}`;
+            console.log(`API ${method} ${url}`, data);
+
+            const options = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Workspace-Id': workspaceId()
+                }
+            };
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+
+            const response = await fetch(url, options);
+            const responseText = await response.text();
+            console.log(`Response ${response.status}:`, responseText.substring(0, 500));
+
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.status} - ${responseText}`);
+            }
+
+            return responseText ? JSON.parse(responseText) : {};
+        }
+
+        // Start the call
+        async function startCall() {
+            const startBtn = document.getElementById('startBtn');
+            startBtn.disabled = true;
+            startBtn.innerHTML = '<span>Connecting...</span>';
+            document.getElementById('errorBanner').classList.add('hidden');
+
+            try {
+                // Request microphone permission first
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+                console.log('Microphone permission granted');
+
+                // Create ChatFlow from template
+                const template = document.getElementById('template').value;
+                addMessage('system', `Setting up ${template}...`);
+
+                const cf = await api('POST', `/v2/chatflows/builder/from-template/${template}`, {
+                    name: `Voice Call ${Date.now()}`
+                });
+                chatflowId = cf.id;
+                console.log('ChatFlow created:', chatflowId);
+
+                // Deploy
+                await api('POST', `/v2/chatflows/${chatflowId}/deploy`, { skipValidation: true });
+
+                // Start session
+                const session = await api('POST', `/v2/chatflows/${chatflowId}/sessions`, {
+                    channel: 'WEB_CHAT',
+                    context: { source: 'voice-call-webrtc' }
+                });
+                sessionId = session.sessionId;
+                console.log('Session started:', sessionId);
+
+                // Show call section
+                document.getElementById('setup-section').classList.add('hidden');
+                document.getElementById('call-section').classList.remove('hidden');
+
+                // Start call timer
+                callStartTime = Date.now();
+                durationInterval = setInterval(updateCallDuration, 1000);
+
+                // Initialize and START speech recognition immediately
+                initAndStartRecognition();
+
+                // Get first question and speak it
+                const status = await api('GET', `/v2/chatflows/sessions/${sessionId}`);
+                const firstQuestion = status.nextQuestion ||
+                    "Hello! I have a few quick questions for you. What tools or solutions are you currently using for project management?";
+
+                addMessage('assistant', firstQuestion);
+                speakText(firstQuestion);
+
+            } catch (error) {
+                console.error('Failed to start call:', error);
+                document.getElementById('errorBanner').textContent = error.message;
+                document.getElementById('errorBanner').classList.remove('hidden');
+                startBtn.disabled = false;
+                startBtn.innerHTML = '<span>Start Call</span>';
+            }
+        }
+
+        // Initialize and immediately start speech recognition
+        function initAndStartRecognition() {
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                console.log('Speech recognition started');
+                document.getElementById('youIndicator').classList.add('listening');
+            };
+
+            recognition.onend = () => {
+                console.log('Speech recognition ended - restarting...');
+                // Always restart - we want continuous listening like a phone call
+                if (sessionId) {
+                    setTimeout(() => {
+                        if (sessionId) {
+                            try {
+                                recognition.start();
+                            } catch (e) {
+                                console.log('Restart error (normal):', e.message);
+                            }
+                        }
+                    }, 100);
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.log('Speech recognition error:', event.error);
+                // Ignore common errors and keep going
+                if (event.error === 'no-speech') {
+                    document.getElementById('liveTranscript').textContent = 'Listening... (speak anytime)';
+                }
+            };
+
+            recognition.onresult = (event) => {
+                // BLOCK all input while agent is speaking (prevents echo)
+                if (isSpeaking) {
+                    console.log('Ignoring input - agent is speaking');
+                    return;
+                }
+
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                // Show live transcript
+                if (interimTranscript) {
+                    document.getElementById('liveTranscript').textContent = `"${interimTranscript}"`;
+                    document.getElementById('youIndicator').querySelector('.indicator-icon').textContent = '🗣️';
+                }
+
+                // Process final transcript
+                if (finalTranscript.trim()) {
+                    const userText = finalTranscript.trim();
+
+                    // Filter out echoes - if text is similar to what agent just said, ignore it
+                    if (isEcho(userText)) {
+                        console.log('Filtered echo:', userText);
+                        document.getElementById('liveTranscript').textContent = 'Listening... speak now';
+                        return;
+                    }
+
+                    console.log('Final transcript:', userText);
+                    document.getElementById('youIndicator').querySelector('.indicator-icon').textContent = '🎤';
+
+                    // Queue the input for processing
+                    queueUserInput(userText);
+                }
+            };
+
+            // Start immediately
+            try {
+                recognition.start();
+                console.log('Recognition started immediately');
+                document.getElementById('liveTranscript').textContent = 'Listening... speak anytime';
+            } catch (e) {
+                console.error('Failed to start recognition:', e);
+            }
+        }
+
+        // Queue and process user input (handles rapid speech)
+        async function queueUserInput(text) {
+            if (isProcessing) {
+                // Queue it up - will be sent after current processing
+                pendingInput = (pendingInput + ' ' + text).trim();
+                console.log('Queued input:', pendingInput);
+                return;
+            }
+
+            await processUserInput(text);
+
+            // Check if there's pending input
+            if (pendingInput) {
+                const pending = pendingInput;
+                pendingInput = '';
+                await processUserInput(pending);
+            }
+        }
+
+        // Process user input - send to ChatFlow
+        async function processUserInput(text) {
+            if (!text || !sessionId) return;
+
+            isProcessing = true;
+            document.getElementById('liveTranscript').textContent = `Sending: "${text}"`;
+            addMessage('user', text);
+
+            try {
+                console.log('Sending to session:', text);
+                const response = await api('POST', `/v2/chatflows/sessions/${sessionId}/input`, {
+                    input: text,
+                    channel: 'WEB_CHAT'
+                });
+
+                console.log('Got response:', response);
+
+                // Update collected data
+                updateCollectedData();
+
+                // Get the agent's response
+                const agentResponse = response.message || response.response;
+
+                if (agentResponse) {
+                    addMessage('assistant', agentResponse);
+                    speakText(agentResponse);
+                }
+
+                // Check if complete
+                const status = await api('GET', `/v2/chatflows/sessions/${sessionId}`);
+                if (status.terminal || status.state === 'COMPLETED') {
+                    addMessage('system', `Call complete! Collected ${status.fieldsCollected || 0}/7 fields.`);
+                    document.getElementById('liveTranscript').textContent = 'Call complete!';
+                    // Keep recognition running for a moment then stop
+                    setTimeout(() => {
+                        if (recognition) recognition.stop();
+                    }, 2000);
+                } else {
+                    document.getElementById('liveTranscript').textContent = 'Listening... speak anytime';
+                }
+
+            } catch (error) {
+                console.error('Failed to process input:', error);
+                addMessage('system', `Error: ${error.message}`);
+                document.getElementById('liveTranscript').textContent = 'Error - still listening...';
+            } finally {
+                isProcessing = false;
+            }
+        }
+
+        // Check if text is an echo of what agent just said
+        function isEcho(text) {
+            if (!lastSpokenText) return false;
+
+            const normalize = (s) => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+            const userNorm = normalize(text);
+            const agentNorm = normalize(lastSpokenText);
+
+            // Check if user text is contained in agent text or vice versa
+            if (agentNorm.includes(userNorm) || userNorm.includes(agentNorm)) {
+                return true;
+            }
+
+            // Check for significant word overlap (>50% of words match)
+            const userWords = userNorm.split(/\s+/);
+            const agentWords = new Set(agentNorm.split(/\s+/));
+            const matchCount = userWords.filter(w => agentWords.has(w)).length;
+
+            if (matchCount > userWords.length * 0.5) {
+                return true;
+            }
+
+            return false;
+        }
+
+        // Make text sound more human with natural speech patterns
+        function humanizeText(text) {
+            // Add filler words and natural pauses
+            const fillers = ['So, ', 'Well, ', 'Um, ', 'Okay so, ', 'Alright, '];
+            const acknowledgments = ['Got it! ', 'I see. ', 'Okay, ', 'Right, ', 'Sure! '];
+
+            let result = text;
+
+            // Randomly add a filler at the start sometimes (30% chance)
+            if (Math.random() < 0.3 && !text.startsWith('Hello') && !text.startsWith('Hi')) {
+                result = fillers[Math.floor(Math.random() * fillers.length)] + result.charAt(0).toLowerCase() + result.slice(1);
+            }
+
+            // Add natural pauses (replace periods with slight pauses)
+            result = result.replace(/\. /g, '... ');
+
+            // Add emphasis words
+            result = result.replace(/really /gi, 'really, really ');
+            result = result.replace(/very important/gi, 'super important');
+
+            return result;
+        }
+
+        // Text-to-speech - BLOCKS recognition to prevent echo
+        function speakText(text) {
+            if (!('speechSynthesis' in window)) return;
+
+            // SET SPEAKING FLAG - blocks all recognition processing
+            isSpeaking = true;
+            lastSpokenText = text;
+
+            // STOP recognition completely while agent speaks
+            if (recognition) {
+                recognition.onend = null; // Prevent auto-restart
+                try {
+                    recognition.stop();
+                } catch(e) {}
+            }
+
+            // Show agent is speaking
+            document.getElementById('agentIndicator').classList.add('speaking');
+            document.getElementById('agentIndicator').querySelector('.indicator-icon').textContent = '🔊';
+            document.getElementById('youIndicator').classList.remove('listening');
+            document.getElementById('liveTranscript').textContent = 'Agent speaking...';
+
+            // Humanize the text
+            const humanText = humanizeText(text);
+
+            const utterance = new SpeechSynthesisUtterance(humanText);
+
+            // Vary rate and pitch slightly for more natural sound
+            utterance.rate = 0.9 + (Math.random() * 0.2); // 0.9-1.1
+            utterance.pitch = 0.95 + (Math.random() * 0.1); // 0.95-1.05
+            utterance.volume = 1.0;
+
+            // Get voices and select a good one
+            const voices = speechSynthesis.getVoices();
+            const preferredVoice = voices.find(v =>
+                v.name.includes('Samantha') ||
+                v.name.includes('Google US English') ||
+                (v.lang === 'en-US' && v.localService)
+            ) || voices.find(v => v.lang.startsWith('en'));
+
+            if (preferredVoice) {
+                utterance.voice = preferredVoice;
+            }
+
+            utterance.onend = () => {
+                document.getElementById('agentIndicator').classList.remove('speaking');
+                document.getElementById('agentIndicator').querySelector('.indicator-icon').textContent = '🤖';
+
+                // WAIT before resuming - let audio fully dissipate
+                setTimeout(() => {
+                    isSpeaking = false; // NOW allow input processing
+
+                    // RESUME recognition after delay
+                    if (sessionId) {
+                        document.getElementById('youIndicator').classList.add('listening');
+                        document.getElementById('liveTranscript').textContent = 'Your turn - speak now';
+
+                        // Reinitialize recognition to clear any buffered audio
+                        initAndStartRecognition();
+                    }
+                }, 800); // 800ms buffer after TTS ends
+            };
+
+            utterance.onerror = () => {
+                document.getElementById('agentIndicator').classList.remove('speaking');
+                document.getElementById('agentIndicator').querySelector('.indicator-icon').textContent = '🤖';
+                isSpeaking = false;
+                if (sessionId) {
+                    document.getElementById('youIndicator').classList.add('listening');
+                    initAndStartRecognition();
+                }
+            };
+
+            speechSynthesis.speak(utterance);
+        }
+
+        // Update call duration display
+        function updateCallDuration() {
+            if (!callStartTime) return;
+            const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+            const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
+            const secs = (elapsed % 60).toString().padStart(2, '0');
+            document.getElementById('callDuration').textContent = `${mins}:${secs}`;
+        }
+
+        // Update collected data display
+        async function updateCollectedData() {
+            try {
+                const status = await api('GET', `/v2/chatflows/sessions/${sessionId}`);
+                const collected = status.collectedData || {};
+                const count = status.fieldsCollected || Object.keys(collected).length;
+
+                document.querySelector('#collectedData h3').textContent = `Collected Data (${count}/7)`;
+
+                const dataItems = document.getElementById('dataItems');
+                if (Object.keys(collected).length > 0) {
+                    dataItems.innerHTML = Object.entries(collected).map(([key, value]) => {
+                        const val = typeof value === 'object' ? (value.value || JSON.stringify(value)) : value;
+                        const displayVal = String(val).length > 30 ? String(val).substring(0, 30) + '...' : val;
+                        return `<div class="data-item">
+                            <span class="data-label">${key}</span>
+                            <span class="data-value">${displayVal}</span>
+                        </div>`;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Failed to update collected data:', error);
+            }
+        }
+
+        // End call
+        async function endCall() {
+            // Stop recognition
+            if (recognition) {
+                recognition.onend = null; // Prevent restart
+                recognition.stop();
+                recognition = null;
+            }
+
+            // Stop TTS
+            speechSynthesis.cancel();
+
+            // Stop timer
+            if (durationInterval) {
+                clearInterval(durationInterval);
+                durationInterval = null;
+            }
+
+            // Cleanup ChatFlow
+            if (chatflowId) {
+                try {
+                    await api('DELETE', `/v2/chatflows/${chatflowId}?force=true`);
+                } catch (e) {
+                    console.log('Cleanup error:', e);
+                }
+            }
+
+            // Reset UI
+            document.getElementById('setup-section').classList.remove('hidden');
+            document.getElementById('call-section').classList.add('hidden');
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('startBtn').innerHTML = '<span>Start Call</span>';
+            document.getElementById('transcript').innerHTML = '<h3>Conversation</h3>';
+            document.getElementById('dataItems').innerHTML = '<p style="color: #9ca3af; font-size: 13px;">No data collected yet</p>';
+            document.querySelector('#collectedData h3').textContent = 'Collected Data (0/7)';
+
+            chatflowId = null;
+            sessionId = null;
+            callStartTime = null;
+        }
+
+        // Add message to transcript
+        function addMessage(role, text) {
+            const transcript = document.getElementById('transcript');
+            const msg = document.createElement('div');
+            msg.className = `message ${role}`;
+            msg.textContent = text;
+            transcript.appendChild(msg);
+            transcript.scrollTop = transcript.scrollHeight;
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (chatflowId) {
+                navigator.sendBeacon(`${serviceUrl()}/v2/chatflows/${chatflowId}?force=true`);
+            }
+        });
+
+        // Load voices
+        if ('speechSynthesis' in window) {
+            speechSynthesis.getVoices();
+            speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+        }
+    </script>
+</body>
+</html>

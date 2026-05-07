@@ -30,6 +30,7 @@ export interface UserInfo {
 export interface WidgetConfig {
   id: string;
   agentId: string;
+  workspaceId?: string;
   name?: string;
   // Appearance
   primaryColor: string;

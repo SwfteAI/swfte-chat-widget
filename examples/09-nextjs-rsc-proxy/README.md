@@ -14,6 +14,25 @@ npm run dev
 
 Open http://localhost:3000 and click the floating bubble. Open the network tab — every request goes to `/api/chat-proxy/*`, never directly to `api.swfte.com`.
 
+## Provisioning a widget
+
+The chat-widget SDK expects a **widget id** — a published configuration that wraps an agent, appearance, and behaviour. It is **not** a raw agent id. Create one once per environment:
+
+```bash
+curl -X POST -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $SWFTE_API_KEY" \
+  -H "X-Workspace-ID: $SWFTE_WORKSPACE_ID" \
+  -d '{
+    "name": "Marketing Site Chat",
+    "agentId": "<your-agent-id>",
+    "appearance": { "primaryColor": "#3b82f6", "position": "bottom-right" },
+    "behavior":   { "greeting": "Hi! How can I help?" }
+  }' \
+  https://api.swfte.com/agents/v1/widgets
+```
+
+Use the returned `id` as `NEXT_PUBLIC_WIDGET_ID` in `.env.local`. You can also create one in the dashboard at [swfte.com/products/chat](https://www.swfte.com/products/chat).
+
 ## Files
 
 ```

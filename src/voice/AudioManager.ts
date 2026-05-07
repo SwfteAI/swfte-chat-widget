@@ -352,16 +352,17 @@ export class AudioManager {
             return;
         }
 
-        this.recognition = new SpeechRecognition();
-        this.recognition.continuous = true;
-        this.recognition.interimResults = true;
-        this.recognition.lang = this.config.language;
+        const rec: SpeechRecognition = new SpeechRecognition();
+        this.recognition = rec;
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.lang = this.config.language;
 
-        this.recognition.onstart = () => {
+        rec.onstart = () => {
             this.log('Speech recognition started');
         };
 
-        this.recognition.onresult = (event: SpeechRecognitionEvent) => {
+        rec.onresult = (event: SpeechRecognitionEvent) => {
             let interimTranscript = '';
             let finalTranscript = '';
 
@@ -393,13 +394,13 @@ export class AudioManager {
             }
         };
 
-        this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        rec.onerror = (event: SpeechRecognitionErrorEvent) => {
             if (event.error !== 'no-speech' && event.error !== 'aborted') {
                 this.log('Speech recognition error:', event.error);
             }
         };
 
-        this.recognition.onend = () => {
+        rec.onend = () => {
             this.log('Speech recognition ended');
             // Auto-restart if still active
             if (this.vadState.isActive) {
@@ -414,7 +415,7 @@ export class AudioManager {
         };
 
         try {
-            this.recognition.start();
+            rec.start();
         } catch (e) {
             this.log('Failed to start recognition:', e);
         }

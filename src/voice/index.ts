@@ -47,7 +47,6 @@ export type {
     VoiceClientConfig,
     VoiceConfig,
     VADConfig,
-    AudioManagerConfig,
 
     // Session
     VoiceSession,

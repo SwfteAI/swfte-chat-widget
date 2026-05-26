@@ -298,7 +298,9 @@ export class SwfteChatClient {
       }
     );
 
-    return response.data;
+    // Echo the input query so the result always satisfies the declared
+    // return contract ({ query, ... }); the server response may omit it.
+    return { query, ...response.data };
   }
 
   // ==================== Visitor Identity ====================

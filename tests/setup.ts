@@ -260,6 +260,11 @@ export function createMockResponse<T>(
 // Helper to clear all mocks
 export function clearAllMocks(): void {
   jest.clearAllMocks();
+  // jest.clearAllMocks() clears call history but NOT queued mockResolvedValueOnce
+  // implementations. Reset fetch so an unconsumed queued response from one test
+  // can't leak into the next (e.g. a leftover response with no `results` was
+  // bleeding into the search test). fetch has no default impl, so this is safe.
+  mockFetch.mockReset();
   Object.keys(mockLocalStorage).forEach(key => delete mockLocalStorage[key]);
   Object.keys(mockSessionStorage).forEach(key => delete mockSessionStorage[key]);
 }

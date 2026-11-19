@@ -9,7 +9,7 @@ const production = !process.env.ROLLUP_WATCH;
 const mainCjsConfig = {
   input: 'src/index.ts',
   output: {
-    file: 'dist/index.js',
+    file: 'dist/index.cjs',
     format: 'cjs',
     sourcemap: true,
     exports: 'named',
@@ -21,7 +21,7 @@ const mainCjsConfig = {
     typescript({ tsconfig: './tsconfig.json' }),
     production && terser(),
   ],
-  external: ['react', 'react-dom'],
+  external: ['react', 'react-dom', 'react/jsx-runtime'],
 };
 
 // Main bundle - ESM
@@ -39,7 +39,7 @@ const mainEsmConfig = {
     typescript({ tsconfig: './tsconfig.json' }),
     production && terser(),
   ],
-  external: ['react', 'react-dom'],
+  external: ['react', 'react-dom', 'react/jsx-runtime'],
 };
 
 // Main bundle - UMD
@@ -62,14 +62,14 @@ const mainUmdConfig = {
     typescript({ tsconfig: './tsconfig.json' }),
     production && terser(),
   ],
-  external: ['react', 'react-dom'],
+  external: ['react', 'react-dom', 'react/jsx-runtime'],
 };
 
 // React bundle - CJS (includes core components via bundling)
 const reactCjsConfig = {
-  input: 'react/index.tsx',
+  input: './react/index.tsx',
   output: {
-    file: 'dist/react/index.js',
+    file: 'dist/react/index.cjs',
     format: 'cjs',
     sourcemap: true,
     exports: 'named',
@@ -87,12 +87,12 @@ const reactCjsConfig = {
     }),
     production && terser(),
   ],
-  external: ['react', 'react-dom'],
+  external: ['react', 'react-dom', 'react/jsx-runtime'],
 };
 
 // React bundle - ESM
 const reactEsmConfig = {
-  input: 'react/index.tsx',
+  input: './react/index.tsx',
   output: {
     file: 'dist/react/index.esm.js',
     format: 'esm',
@@ -111,7 +111,7 @@ const reactEsmConfig = {
     }),
     production && terser(),
   ],
-  external: ['react', 'react-dom'],
+  external: ['react', 'react-dom', 'react/jsx-runtime'],
 };
 
 export default [

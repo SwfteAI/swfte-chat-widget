@@ -8,6 +8,7 @@ import type { ChatWidgetOptions, ChatTheme, Message } from '../types';
 import { defaultTheme, createThemeFromConfig, mergeThemes } from '../theming/theme';
 import { generateCSSVariables, injectBaseStyles, CSS_VARS } from '../theming/css-variables';
 import { getPresenceManager } from '../realtime/presence';
+import { escapeHtml, formatMessageHtml } from './safe-content';
 
 // SVG Icons
 const CHAT_ICON = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>`;
@@ -210,14 +211,14 @@ export class ChatWidget {
       const greeting = config?.greetingMessage || 'Hi! How can I help you today?';
       return `
         <div class="swfte-message agent">
-          ${greeting}
+          ${escapeHtml(greeting)}
         </div>
       `;
     }
 
     return messages.map(msg => `
       <div class="swfte-message ${msg.role === 'user' ? 'user' : 'agent'}">
-        ${this.formatMessage(msg.content)}
+        ${formatMessageHtml(msg.content)}
         <div class="swfte-message-time">${this.formatTime(msg.timestamp)}</div>
       </div>
     `).join('');
@@ -330,7 +331,7 @@ export class ChatWidget {
       this.scrollToBottom();
       this.trackAnalytics('message.sent', { latencyMs: Date.now() - startTime, contentLength: content.length });
     } catch (error) {
-      console.error('[ChatWidget] Failed to send message:', error);
+      console.error('[ChatWidget] Failed to send message');
       this.options.onError?.(error instanceof Error ? error : new Error('Failed to send message'));
       this.trackAnalytics('message.error', { error: error instanceof Error ? error.message : 'Unknown' });
     }
@@ -361,18 +362,6 @@ export class ChatWidget {
     if (messagesContainer) {
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
-  }
-
-  /**
-   * Format message content
-   */
-  private formatMessage(content: string): string {
-    // Basic markdown support
-    return content
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code>$1</code>')
-      .replace(/\n/g, '<br>');
   }
 
   /**

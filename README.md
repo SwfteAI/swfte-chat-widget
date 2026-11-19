@@ -1,11 +1,8 @@
 # Swfte Chat Widget SDK
 
-[![npm Version](https://img.shields.io/npm/v/@swfte/chat-widget.svg)](https://www.npmjs.com/package/@swfte/chat-widget)
-[![npm Downloads](https://img.shields.io/npm/dm/@swfte/chat-widget.svg)](https://www.npmjs.com/package/@swfte/chat-widget)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/SwfteAI/swfte-chat-widget/ci.yml?branch=main)](https://github.com/SwfteAI/swfte-chat-widget/actions)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
-[![Bundle Size](https://img.shields.io/bundlephobia/minzip/@swfte/chat-widget)](https://bundlephobia.com/package/@swfte/chat-widget)
 [![React](https://img.shields.io/badge/React-17%2B-61dafb.svg)](https://reactjs.org/)
 
 The official embeddable AI chat widget SDK from [**Swfte**](https://www.swfte.com) — a floating chat bubble, a command-palette AI search box, an embedded chat panel, and a full-page chat layout, all wired into the [Swfte](https://www.swfte.com) AI infrastructure platform.
@@ -47,59 +44,71 @@ Read the full company profile in [ABOUT.md](ABOUT.md), or visit [swfte.com](http
 
 ## Installation
 
+`@swfte/chat-widget` is not yet published on public npm. Install from [the source repository](https://github.com/SwfteAI/swfte-chat-widget) with repository access and Node.js 18 or newer.
+
 ```bash
-npm install @swfte/chat-widget
-# or
-yarn add @swfte/chat-widget
-# or
-pnpm add @swfte/chat-widget
+git clone https://github.com/SwfteAI/swfte-chat-widget.git
+cd swfte-chat-widget
+npm ci
+npm run build
+npm pack
 ```
+
+In your application, run `npm install /absolute/path/to/swfte-chat-widget/swfte-chat-widget-1.2.0.tgz`. Use the tarball filename printed by `npm pack` if building a different revision.
 
 ## Quick Start
 
+Create and publish a widget for your agent in Swfte, then copy its public widget ID. The SDK opens a visitor session and sends its scoped token in the `X-Widget-Token` header. Keep workspace credentials on your server. For private deployments, use an authenticated host proxy. [Security guide](docs/security.md)
+
 ### Vanilla JavaScript
 
-```html
-<script type="module">
-  import { SwfteChatWidget } from '@swfte/chat-widget';
+```ts
+import { ChatWidget, createSwfteChatClient } from '@swfte/chat-widget';
 
-  const widget = new SwfteChatWidget({
-    apiKey: 'sk-swfte-...',
-    agentId: 'agent-123',
-    position: 'bottom-right'
-  });
+const client = createSwfteChatClient({
+  baseUrl: 'https://api.swfte.com/agents',
+  widgetId: 'your-published-widget-id',
+});
 
-  widget.mount();
-</script>
+await client.initialize();
+
+const widget = new ChatWidget(client, { position: 'bottom-right' });
+widget.mount();
 ```
 
 ### React
 
 ```tsx
-import { ChatWidget } from '@swfte/chat-widget/react';
+import { ChatProvider, ChatWidget } from '@swfte/chat-widget/react';
 
-function App() {
+export function App() {
   return (
-    <ChatWidget
-      apiKey="sk-swfte-..."
-      agentId="agent-123"
-      position="bottom-right"
-      theme="light"
-    />
+    <ChatProvider config={{
+      baseUrl: 'https://api.swfte.com/agents',
+      widgetId: 'your-published-widget-id',
+    }}>
+      <ChatWidget position="bottom-right" />
+    </ChatProvider>
   );
 }
 ```
 
-### CDN (No Build Required)
+### Self-hosted script tag
+
+Copy `dist/index.umd.js` from the source build to your site's static assets.
 
 ```html
-<script src="https://unpkg.com/@swfte/chat-widget@latest/dist/swfte-chat.umd.js"></script>
+<script src="/assets/index.umd.js"></script>
 <script>
-  const widget = new SwfteChatWidget({
-    apiKey: 'sk-swfte-...',
-    agentId: 'agent-123'
-  });
-  widget.mount();
+  async function mountChat() {
+    const client = SwfteChat.createSwfteChatClient({
+      baseUrl: 'https://api.swfte.com/agents',
+      widgetId: 'your-published-widget-id',
+    });
+    await client.initialize();
+    new SwfteChat.ChatWidget(client).mount();
+  }
+  mountChat().catch(() => console.error('Unable to initialize chat'));
 </script>
 ```
 
@@ -120,138 +129,28 @@ function App() {
 
 ## Widget Types
 
-### Floating Chat Bubble
+Use the initialized client and public configuration from the quickstart.
 
-```typescript
-const widget = new SwfteChatWidget({
-  apiKey: 'sk-swfte-...',
-  agentId: 'agent-123',
-  type: 'bubble',
-  position: 'bottom-right',
-  bubbleIcon: 'chat', // or custom SVG
-  greeting: 'Hi! How can I help you today?'
-});
-```
+```ts
+import { AISearch, ChatWidget, EmbeddedChat } from '@swfte/chat-widget';
 
-### Embedded Panel
+new ChatWidget(client, { position: 'bottom-right' }).mount();
+new EmbeddedChat(client, { container: '#chat-container' }).mount();
 
-```typescript
-const widget = new SwfteChatWidget({
-  apiKey: 'sk-swfte-...',
-  agentId: 'agent-123',
-  type: 'embedded',
-  container: '#chat-container',
-  height: '500px'
-});
-```
-
-### Search Modal
-
-```typescript
-const widget = new SwfteChatWidget({
-  apiKey: 'sk-swfte-...',
-  agentId: 'agent-123',
-  type: 'search',
-  placeholder: 'Search documentation...',
-  hotkey: 'cmd+k'
-});
+const search = new AISearch({
+  baseUrl: 'https://api.swfte.com/agents',
+  widgetId: 'your-published-widget-id',
+}, { placeholder: 'Search documentation...' });
+search.mount('#search-container');
 ```
 
 ## React Components
 
-### ChatWidget
-
-```tsx
-import { ChatWidget } from '@swfte/chat-widget/react';
-
-function App() {
-  return (
-    <ChatWidget
-      apiKey="sk-swfte-..."
-      agentId="agent-123"
-      position="bottom-right"
-      theme="light"
-      onMessage={(message) => console.log('New message:', message)}
-      onOpen={() => console.log('Widget opened')}
-      onClose={() => console.log('Widget closed')}
-    />
-  );
-}
-```
-
-### EmbeddedChat
-
-```tsx
-import { EmbeddedChat } from '@swfte/chat-widget/react';
-
-function SupportPage() {
-  return (
-    <div className="support-container">
-      <h1>Support</h1>
-      <EmbeddedChat
-        apiKey="sk-swfte-..."
-        agentId="agent-123"
-        height="600px"
-        welcomeMessage="Welcome to support! How can we help?"
-      />
-    </div>
-  );
-}
-```
-
-### SearchModal
-
-```tsx
-import { SearchModal, useSearchModal } from '@swfte/chat-widget/react';
-
-function App() {
-  const { isOpen, open, close } = useSearchModal();
-
-  return (
-    <>
-      <button onClick={open}>Search (Cmd+K)</button>
-      <SearchModal
-        isOpen={isOpen}
-        onClose={close}
-        apiKey="sk-swfte-..."
-        agentId="agent-123"
-        placeholder="Search anything..."
-      />
-    </>
-  );
-}
-```
+Place `ChatWidget`, `EmbeddedChat`, or `AISearch` inside the `ChatProvider` from the quickstart.
 
 ## Configuration
 
-```typescript
-interface WidgetConfig {
-  // Required
-  apiKey: string;           // Your Swfte API key
-  agentId: string;          // The AI agent to connect to
-
-  // Widget Type
-  type?: 'bubble' | 'embedded' | 'search' | 'fullpage';
-  position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
-
-  // Appearance
-  theme?: 'light' | 'dark' | 'auto';
-  primaryColor?: string;    // Brand color (e.g., '#6366f1')
-  borderRadius?: string;    // Corner radius (e.g., '12px')
-
-  // Behavior
-  greeting?: string;        // Initial greeting message
-  placeholder?: string;     // Input placeholder text
-  autoOpen?: boolean;       // Open widget automatically
-  persistChat?: boolean;    // Save chat history locally
-
-  // Advanced
-  baseUrl?: string;         // Custom API endpoint
-  wsUrl?: string;           // Custom WebSocket endpoint
-  container?: string;       // CSS selector for embedded widget
-  zIndex?: number;          // z-index for floating widget
-}
-```
+`SwfteChatConfig` requires `baseUrl` and a public `widgetId`. Optional settings include `userInfo`, `debug`, and a custom `fetch`. See the [API reference](docs/api-reference.md) for component options.
 
 ## Theming
 
@@ -284,117 +183,34 @@ interface WidgetConfig {
 
 ### Custom Theme Object
 
-```typescript
-const widget = new SwfteChatWidget({
-  apiKey: 'sk-swfte-...',
-  agentId: 'agent-123',
-  theme: {
-    primaryColor: '#6366f1',
-    backgroundColor: '#ffffff',
-    textColor: '#111827',
-    borderRadius: '12px',
-    fontFamily: 'Inter, sans-serif',
-    bubbleSize: 60,
-    headerHeight: 64
+```ts
+const widget = new ChatWidget(client, {
+  theme: { colors: { ...defaultTheme.colors, primary: '#6366f1' } },
+});
+widget.mount();
+```
+
+Import `defaultTheme` and `ChatWidget` from `@swfte/chat-widget`.
+
+## Events
+
+```ts
+const unsubscribe = client.on(event => {
+  if (event.type === 'message:received') {
+    console.log('Message received');
   }
 });
 ```
 
-## Events
-
-```typescript
-const widget = new SwfteChatWidget({
-  apiKey: 'sk-swfte-...',
-  agentId: 'agent-123'
-});
-
-// Listen to events
-widget.on('open', () => console.log('Widget opened'));
-widget.on('close', () => console.log('Widget closed'));
-widget.on('message', (message) => console.log('Message:', message));
-widget.on('error', (error) => console.error('Error:', error));
-widget.on('ready', () => console.log('Widget ready'));
-widget.on('connect', () => console.log('WebSocket connected'));
-widget.on('disconnect', () => console.log('WebSocket disconnected'));
-```
+Call `unsubscribe()` when you no longer need the listener.
 
 ## API Reference
 
-### Methods
-
-```typescript
-// Mount the widget to DOM
-widget.mount(container?: string | HTMLElement): void;
-
-// Unmount the widget
-widget.unmount(): void;
-
-// Open/close the widget
-widget.open(): void;
-widget.close(): void;
-widget.toggle(): void;
-
-// Send a message programmatically
-widget.sendMessage(content: string): Promise<void>;
-
-// Clear chat history
-widget.clearHistory(): void;
-
-// Update configuration
-widget.updateConfig(config: Partial<WidgetConfig>): void;
-
-// Get current state
-widget.isOpen(): boolean;
-widget.getMessages(): Message[];
-```
+Use `client.sendMessage(content)` to send a message from code. The vanilla `ChatWidget` exposes `mount`, `unmount`, `open`, `close`, and `toggle`. See the [API reference](docs/api-reference.md) for details.
 
 ## Examples
 
-### Customer Support Widget
-
-```typescript
-const supportWidget = new SwfteChatWidget({
-  apiKey: 'sk-swfte-...',
-  agentId: 'support-agent',
-  position: 'bottom-right',
-  greeting: 'Hi there! How can we help you today?',
-  theme: {
-    primaryColor: '#10b981',
-    borderRadius: '16px'
-  },
-  persistChat: true
-});
-
-supportWidget.mount();
-```
-
-### Documentation Search
-
-```typescript
-const searchWidget = new SwfteChatWidget({
-  apiKey: 'sk-swfte-...',
-  agentId: 'docs-agent',
-  type: 'search',
-  placeholder: 'Search documentation...',
-  hotkey: 'cmd+k'
-});
-
-searchWidget.mount();
-```
-
-### Full-Page Chat Application
-
-```typescript
-const chatApp = new SwfteChatWidget({
-  apiKey: 'sk-swfte-...',
-  agentId: 'assistant',
-  type: 'fullpage',
-  container: '#app',
-  theme: 'dark'
-});
-
-chatApp.mount();
-```
+See [vanilla chat](examples/01-vanilla-html/), [React support chat](examples/02-react-support-widget/), and [React AI search](examples/03-react-ai-search/).
 
 ## Browser Support
 
@@ -425,8 +241,8 @@ The chat widget is one piece of the [Swfte](https://www.swfte.com) developer sur
 
 - [**swfte-python**](https://github.com/SwfteAI/swfte-python) — Python SDK ([PyPI](https://pypi.org/project/swfte/))
 - [**swfte-node**](https://github.com/SwfteAI/swfte-node) — Node.js / TypeScript SDK ([npm](https://www.npmjs.com/package/@swfte/sdk))
-- [**swfte-java**](https://github.com/SwfteAI/swfte-java) — Java SDK ([Maven Central](https://search.maven.org/artifact/com.swfte/swfte-sdk))
-- [**swfte-chatflow-widget**](https://github.com/SwfteAI/swfte-chatflow-widget) — embeddable conversational form widget ([npm](https://www.npmjs.com/package/@swfte/chatflow-widget))
+- [**swfte-java**](https://github.com/SwfteAI/swfte-java) — Java SDK (source install)
+- [**swfte-chatflow-widget**](https://github.com/SwfteAI/swfte-chatflow-widget) — embeddable conversational form widget (source install)
 
 All SDKs are MIT-licensed and maintained under the [SwfteAI](https://github.com/SwfteAI) GitHub organisation.
 

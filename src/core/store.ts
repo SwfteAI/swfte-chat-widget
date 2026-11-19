@@ -51,7 +51,7 @@ export class ChatStore {
    */
   dispatch(action: ChatAction): void {
     if (this.debug) {
-      console.log('[SwfteChat Store] Dispatch:', action.type, 'payload' in action ? action.payload : '');
+      console.log('[SwfteChat Store] Dispatch:', action.type);
     }
 
     this.state = this.reducer(this.state, action);
@@ -73,8 +73,8 @@ export class ChatStore {
     for (const listener of this.listeners) {
       try {
         listener();
-      } catch (error) {
-        console.error('[SwfteChat Store] Listener error:', error);
+      } catch {
+        console.error('[SwfteChat Store] Listener failed');
       }
     }
   }

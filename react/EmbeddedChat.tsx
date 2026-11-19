@@ -7,6 +7,7 @@ import * as React from 'react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useChatClient, useChatStore } from './ChatProvider';
 import { useChat } from './hooks/useChat';
+import { formatMessageHtml } from '../src/components/safe-content';
 import type { ChatTheme } from '../src/types';
 import { defaultTheme, mergeThemes, createThemeFromConfig } from '../src/theming/theme';
 import { generateCSSVariables, injectBaseStyles } from '../src/theming/css-variables';
@@ -72,8 +73,8 @@ export function EmbeddedChat({
 
     try {
       await sendMessage(content);
-    } catch (error) {
-      console.error('Failed to send message:', error);
+    } catch {
+      console.error('Failed to send message');
     }
   }, [inputValue, sendMessage]);
 
@@ -161,13 +162,7 @@ export function EmbeddedChat({
 
 // Helper components
 function MessageContent({ content }: { content: string }) {
-  const html = content
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/`(.*?)`/g, '<code>$1</code>')
-    .replace(/\n/g, '<br>');
-
-  return <span dangerouslySetInnerHTML={{ __html: html }} />;
+  return <span dangerouslySetInnerHTML={{ __html: formatMessageHtml(content) }} />;
 }
 
 function formatTime(timestamp: string): string {

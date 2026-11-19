@@ -30,9 +30,9 @@ export class HttpClient {
     this.debug = config.debug ?? false;
   }
 
-  private log(message: string, ...args: unknown[]): void {
+  private log(message: string): void {
     if (this.debug) {
-      console.log(`[SwfteChat HTTP] ${message}`, ...args);
+      console.log(`[SwfteChat HTTP] ${message}`);
     }
   }
 
@@ -85,11 +85,12 @@ export class HttpClient {
       ? this.combineSignals(options.signal, controller.signal)
       : controller.signal;
 
-    this.log(`${method} ${url}`, options.body ? { body: options.body } : '');
+    this.log(`Request ${method}`);
 
     try {
       const response = await this.fetchFn(url, {
         method,
+        redirect: authenticatedRedirectMode(headers),
         headers,
         body: options.body ? JSON.stringify(options.body) : undefined,
         signal,
@@ -118,7 +119,7 @@ export class HttpClient {
         data = (await response.text()) as unknown as T;
       }
 
-      this.log(`Response ${response.status}`, data);
+      this.log(`Response ${response.status}`);
 
       return {
         data,
@@ -193,10 +194,11 @@ export class HttpClient {
       Accept: 'text/event-stream',
     };
 
-    this.log(`STREAM ${url}`, body);
+    this.log('Stream request');
 
     const response = await this.fetchFn(url, {
       method: 'POST',
+      redirect: authenticatedRedirectMode(headers),
       headers,
       body: JSON.stringify(body),
       signal: options?.signal,
@@ -294,4 +296,9 @@ export class HttpError extends Error {
   isServerError(): boolean {
     return this.status >= 500;
   }
+}
+
+function authenticatedRedirectMode(headers: Record<string, string>): RequestRedirect {
+  const hasCredentials = Object.keys(headers).some(name => /^(authorization|x-widget-token|x-api-key)$/i.test(name));
+  return hasCredentials ? 'error' : 'follow';
 }

@@ -70,7 +70,7 @@ export class StompClient {
           };
 
           this.client.onStompError = (frame: any) => {
-            this.log('STOMP error:', frame.headers?.message);
+            this.log('STOMP error');
             this.emit({
               type: 'connection:error',
               error: new Error(frame.headers?.message || 'STOMP error'),
@@ -108,7 +108,7 @@ export class StompClient {
     const SockJS = (await import('sockjs-client')).default;
 
     const wsUrl = this.buildWebSocketUrl();
-    this.log('Connecting to:', wsUrl);
+    this.log('Connecting to STOMP');
 
     this.client = new Client({
       webSocketFactory: () => new SockJS(wsUrl),
@@ -117,7 +117,6 @@ export class StompClient {
         'X-Widget-ID': this.config.widgetId,
         'X-Visitor-ID': this.config.visitorId,
       },
-      debug: this.config.debug ? (str) => console.log('[STOMP]', str) : () => {},
       heartbeatIncoming: this.config.heartbeatIncoming,
       heartbeatOutgoing: this.config.heartbeatOutgoing,
       reconnectDelay: this.config.reconnectDelay,
@@ -187,8 +186,8 @@ export class StompClient {
     const subscription = this.client.subscribe(destination, (message: any) => {
       try {
         callback(message.body);
-      } catch (error) {
-        console.error('[StompClient] Subscription callback error:', error);
+      } catch {
+        console.error('[StompClient] Subscription callback failed');
       }
     });
 
@@ -197,7 +196,7 @@ export class StompClient {
       unsubscribe: () => subscription.unsubscribe(),
     });
 
-    this.log('Subscribed to:', destination);
+    this.log('Subscribed to STOMP destination');
   }
 
   /**
@@ -249,8 +248,8 @@ export class StompClient {
     for (const handler of this.eventHandlers) {
       try {
         handler(event);
-      } catch (error) {
-        console.error('[StompClient] Event handler error:', error);
+      } catch {
+        console.error('[StompClient] Event handler failed');
       }
     }
   }
@@ -275,8 +274,8 @@ export class StompClient {
       this.log(`Reconnecting in ${this.config.reconnectDelay}ms...`);
 
       this.reconnectTimeout = setTimeout(() => {
-        this.connect().catch((error) => {
-          this.log('Reconnection failed:', error.message);
+        this.connect().catch(() => {
+          this.log('STOMP reconnection failed');
           this.handleDisconnect();
         });
       }, this.config.reconnectDelay);
@@ -313,9 +312,9 @@ export class StompClient {
   /**
    * Log message if debug enabled
    */
-  private log(message: string, ...args: unknown[]): void {
+  private log(message: string): void {
     if (this.config.debug) {
-      console.log(`[StompClient] ${message}`, ...args);
+      console.log(`[StompClient] ${message}`);
     }
   }
 }

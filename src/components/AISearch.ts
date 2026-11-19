@@ -5,6 +5,8 @@
 
 import { getStore } from '../core/store';
 import { HttpClient } from '../api/http';
+import { escapeHtml, safeCitationUrl } from './safe-content';
+import { warnIfBrowserSecret } from '../core/browser-credentials';
 import {
   defaultTheme,
   mergeThemes,
@@ -40,6 +42,7 @@ export class AISearch {
   private suggestions: string[] = [];
 
   constructor(config: SwfteChatConfig, options: AISearchOptions = {}) {
+    warnIfBrowserSecret(config);
     this.config = config;
     this.options = {
       placeholder: 'Search for answers...',
@@ -351,7 +354,7 @@ export class AISearch {
             type="text"
             class="swfte-search-input"
             placeholder="${this.options.placeholder}"
-            value="${this.escapeHtml(this.query)}"
+            value="${escapeHtml(this.query)}"
           />
           <button class="swfte-search-clear" aria-label="Clear">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -390,7 +393,7 @@ export class AISearch {
     if (this.query && this.results.length === 0) {
       return `
         <div class="swfte-search-empty">
-          No results found for "${this.escapeHtml(this.query)}"
+          No results found for "${escapeHtml(this.query)}"
         </div>
       `;
     }
@@ -400,10 +403,10 @@ export class AISearch {
     }
 
     return this.results.map(result => `
-      <div class="swfte-search-result" data-id="${result.id}">
-        <div class="swfte-search-result-title">${this.escapeHtml(result.title)}</div>
-        <div class="swfte-search-result-content">${this.escapeHtml(result.content)}</div>
-        ${result.source ? `<div class="swfte-search-result-source">${this.escapeHtml(result.source)}</div>` : ''}
+      <div class="swfte-search-result" data-id="${escapeHtml(result.id)}">
+        <div class="swfte-search-result-title">${escapeHtml(result.title)}</div>
+        <div class="swfte-search-result-content">${escapeHtml(result.content)}</div>
+        ${result.source ? `<div class="swfte-search-result-source">${escapeHtml(result.source)}</div>` : ''}
         ${this.options.showCitations && result.citations?.length ? this.renderCitations(result.citations) : ''}
       </div>
     `).join('');
@@ -412,15 +415,19 @@ export class AISearch {
   private renderCitations(citations: SearchCitation[]): string {
     return `
       <div class="swfte-search-citations">
-        ${citations.map(citation => `
-          <div class="swfte-search-citation">
-            ${citation.url
-              ? `<a class="swfte-search-citation-link" href="${this.escapeHtml(citation.url)}" target="_blank">${this.escapeHtml(citation.source)}</a>`
-              : this.escapeHtml(citation.source)
-            }
-            ${citation.page ? ` - Page ${citation.page}` : ''}
-          </div>
-        `).join('')}
+        ${citations.map(citation => {
+          const url = safeCitationUrl(citation.url);
+          const source = escapeHtml(citation.source);
+          return `
+            <div class="swfte-search-citation">
+              ${url
+                ? `<a class="swfte-search-citation-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${source}</a>`
+                : source
+              }
+              ${citation.page ? ` - Page ${escapeHtml(String(citation.page))}` : ''}
+            </div>
+          `;
+        }).join('')}
       </div>
     `;
   }
@@ -434,7 +441,7 @@ export class AISearch {
       <div class="swfte-search-suggestions">
         <div class="swfte-search-suggestions-label">Suggested searches</div>
         ${this.suggestions.map(suggestion => `
-          <span class="swfte-search-suggestion">${this.escapeHtml(suggestion)}</span>
+          <span class="swfte-search-suggestion">${escapeHtml(suggestion)}</span>
         `).join('')}
       </div>
     `;
@@ -502,11 +509,5 @@ export class AISearch {
         this.search(text);
       });
     });
-  }
-
-  private escapeHtml(str: string): string {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
   }
 }

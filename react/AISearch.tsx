@@ -6,6 +6,7 @@
 import * as React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useChatClient, useChatStore } from './ChatProvider';
+import { safeCitationUrl } from '../src/components/safe-content';
 import type { ChatTheme } from '../src/types';
 import { defaultTheme, mergeThemes, createThemeFromConfig } from '../src/theming/theme';
 import { generateCSSVariables, injectBaseStyles } from '../src/theming/css-variables';
@@ -114,8 +115,8 @@ export function AISearch({
       setResults(response.results);
       setSuggestions(response.suggestions || []);
       onSearch?.(searchQuery, response);
-    } catch (error) {
-      console.error('Search failed:', error);
+    } catch {
+      console.error('Search failed');
       setResults([]);
     } finally {
       setIsLoading(false);
@@ -218,24 +219,27 @@ export function AISearch({
               )}
               {showCitations && result.citations && result.citations.length > 0 && (
                 <div className="swfte-search-citations">
-                  {result.citations.map((citation, idx) => (
-                    <div key={idx} className="swfte-search-citation">
-                      {citation.url ? (
-                        <a
-                          className="swfte-search-citation-link"
-                          href={citation.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {citation.source}
-                        </a>
-                      ) : (
-                        citation.source
-                      )}
-                      {citation.page && ` - Page ${citation.page}`}
-                    </div>
-                  ))}
+                  {result.citations.map((citation, idx) => {
+                    const url = safeCitationUrl(citation.url);
+                    return (
+                      <div key={idx} className="swfte-search-citation">
+                        {url ? (
+                          <a
+                            className="swfte-search-citation-link"
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {citation.source}
+                          </a>
+                        ) : (
+                          citation.source
+                        )}
+                        {citation.page && ` - Page ${citation.page}`}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

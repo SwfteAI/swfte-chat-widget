@@ -65,9 +65,9 @@ If you want the voice pipeline without the chat UI (e.g. as a button in your exi
 import { VoiceClient } from '@swfte/chat-widget';
 
 const voice = new VoiceClient({
-  baseUrl: 'https://api.swfte.com/agents',
+  baseUrl: 'wss://voice-proxy.example.com',
   chatFlowId: 'chatflow-456',
-  apiKey: 'sk-swfte-...',           // proxy in production
+  workspaceId: 'your-workspace-id',
 });
 
 await voice.connect();

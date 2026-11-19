@@ -96,7 +96,7 @@ export function ChatProvider({
 
   return (
     <ChatContext.Provider value={value}>
-      {children}
+      {client ? children : null}
     </ChatContext.Provider>
   );
 }

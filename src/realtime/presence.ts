@@ -201,8 +201,8 @@ export class PresenceManager {
     for (const listener of this.typingListeners) {
       try {
         listener(states);
-      } catch (error) {
-        console.error('[PresenceManager] Listener error:', error);
+      } catch {
+        console.error('[PresenceManager] Listener failed');
       }
     }
   }

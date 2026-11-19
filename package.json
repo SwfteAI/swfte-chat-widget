@@ -1,20 +1,20 @@
 {
   "name": "@swfte/chat-widget",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "description": "Embeddable AI chat widget SDK — floating chat bubble, command-palette AI search, and embedded chat panels",
-  "main": "dist/index.js",
+  "main": "dist/index.cjs",
   "module": "dist/index.esm.js",
-  "types": "dist/index.d.ts",
+  "types": "dist/src/index.d.ts",
   "exports": {
     ".": {
       "import": {
-        "types": "./dist/index.d.ts",
+        "types": "./dist/src/index.d.ts",
         "default": "./dist/index.esm.js"
       },
       "require": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
+        "types": "./dist/src/index.d.ts",
+        "default": "./dist/index.cjs"
       }
     },
     "./react": {
@@ -24,7 +24,7 @@
       },
       "require": {
         "types": "./dist/react/index.d.ts",
-        "default": "./dist/react/index.js"
+        "default": "./dist/react/index.cjs"
       }
     }
   },

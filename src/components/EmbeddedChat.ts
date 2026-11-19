@@ -8,6 +8,7 @@ import type { EmbeddedChatOptions, ChatTheme, Message } from '../types';
 import { defaultTheme, createThemeFromConfig, mergeThemes } from '../theming/theme';
 import { generateCSSVariables, injectBaseStyles, CSS_VARS } from '../theming/css-variables';
 import { getPresenceManager } from '../realtime/presence';
+import { escapeHtml, formatMessageHtml } from './safe-content';
 
 const SEND_ICON = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>`;
 
@@ -54,7 +55,7 @@ export class EmbeddedChat {
 
     // Load existing messages if resuming
     if (this.options.conversationId) {
-      this.client.loadMessages(this.options.conversationId).catch(console.error);
+      this.client.loadMessages(this.options.conversationId).catch(() => console.error('[EmbeddedChat] Failed to load messages'));
     }
   }
 
@@ -177,12 +178,12 @@ export class EmbeddedChat {
 
     if (messages.length === 0) {
       const greeting = config?.greetingMessage || 'Hi! How can I help you today?';
-      return `<div class="swfte-message agent">${greeting}</div>`;
+      return `<div class="swfte-message agent">${escapeHtml(greeting)}</div>`;
     }
 
     return messages.map(msg => `
       <div class="swfte-message ${msg.role === 'user' ? 'user' : 'agent'}">
-        ${this.formatMessage(msg.content)}
+        ${formatMessageHtml(msg.content)}
         <div class="swfte-message-time">${this.formatTime(msg.timestamp)}</div>
       </div>
     `).join('');
@@ -264,8 +265,8 @@ export class EmbeddedChat {
     try {
       await this.client.sendMessage(content);
       this.scrollToBottom();
-    } catch (error) {
-      console.error('[EmbeddedChat] Failed to send message:', error);
+    } catch {
+      console.error('[EmbeddedChat] Failed to send message');
     }
   }
 
@@ -288,17 +289,6 @@ export class EmbeddedChat {
     if (messagesContainer) {
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
-  }
-
-  /**
-   * Format message content
-   */
-  private formatMessage(content: string): string {
-    return content
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code>$1</code>')
-      .replace(/\n/g, '<br>');
   }
 
   /**

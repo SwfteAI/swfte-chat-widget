@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - Unreleased
+
+### Breaking/behaviour changes
+
+- Chat renderers display raw HTML as text and render basic markdown. Search citations link only to absolute HTTP(S) URLs.
+- `SSEClient.connect` sends `X-Widget-Token` in a header and accepts endpoints on the configured origin. Custom SSE servers must accept this header, including in CORS preflights. Credentialed HTTP requests reject redirects.
+- Debug output omits request/response data, connection URLs and raw protocol frames. Browser setup warns if given a secret-shaped key.
+
 ## [1.1.0] - 2026-05-07
 
 ### Added

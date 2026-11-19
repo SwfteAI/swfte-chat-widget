@@ -49,15 +49,8 @@ Returns a `SwfteChatClient` instance. The client is the entry point for everythi
 
 ```ts
 const client = createSwfteChatClient({
-  baseUrl:   'https://api.swfte.com/agents',
-  widgetId:  'agent-123',
-  apiKey?:   'sk-swfte-...',                // prefer proxy in production
-  token?:    'eyJ...',                      // short-lived signed token
-  getToken?: () => Promise<string>,         // refresh callback
-  workspaceId?: 'ws_abc',
-  visitorId?:   'visitor-uuid',             // override the auto-generated one
-  persistSession?: true,                    // persist conversation across reloads
-  storage?: 'localStorage' | 'sessionStorage' | 'memory',
+  baseUrl: 'https://api.swfte.com/agents',
+  widgetId: 'your-published-widget-id',
 });
 ```
 
@@ -277,10 +270,9 @@ import { HttpClient } from '@swfte/chat-widget';
 
 const http = new HttpClient({
   baseUrl: 'https://api.swfte.com/agents',
-  apiKey:  'sk-swfte-...',
 });
 
-const conversations = await http.get('/v2/conversations');
+const widget = await http.get('/v1/widgets/your-published-widget-id');
 ```
 
 `HttpError` is thrown with `status`, `body`, and `headers` set.

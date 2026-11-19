@@ -6,6 +6,7 @@ import { HttpClient } from '../api/http';
 import { ConversationsApi } from '../api/conversations';
 import { AgentsApi } from '../api/agents';
 import { ChatStore } from './store';
+import { warnIfBrowserSecret } from './browser-credentials';
 import type {
   SwfteChatConfig,
   WidgetConfig,
@@ -31,6 +32,7 @@ export class SwfteChatClient {
   public readonly agents: AgentsApi;
 
   constructor(config: SwfteChatConfig) {
+    warnIfBrowserSecret(config);
     this.config = config;
     this.store = new ChatStore(config.debug);
 
@@ -337,8 +339,8 @@ export class SwfteChatClient {
     for (const handler of this.eventHandlers) {
       try {
         handler(event);
-      } catch (error) {
-        console.error('[SwfteChat] Event handler error:', error);
+      } catch {
+        console.error('[SwfteChat] Event handler failed');
       }
     }
   }
@@ -361,9 +363,9 @@ export class SwfteChatClient {
 
   // ==================== Utilities ====================
 
-  private log(message: string, ...args: unknown[]): void {
+  private log(message: string): void {
     if (this.config.debug) {
-      console.log(`[SwfteChat] ${message}`, ...args);
+      console.log(`[SwfteChat] ${message}`);
     }
   }
 

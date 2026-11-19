@@ -80,7 +80,7 @@ export class VoiceClient {
 
             this.updateState('connecting');
             const wsUrl = `${this.config.baseUrl}/ws/voice`;
-            this.log('Connecting to', wsUrl);
+            this.log('Connecting to voice WebSocket');
 
             try {
                 this.ws = new WebSocket(wsUrl);
@@ -104,13 +104,13 @@ export class VoiceClient {
                     this.handleMessage(event.data, resolve, reject);
                 };
 
-                this.ws.onerror = (error) => {
-                    this.log('WebSocket error:', error);
+                this.ws.onerror = () => {
+                    this.log('WebSocket error');
                     clearTimeout(connectionTimeout);
                 };
 
                 this.ws.onclose = (event) => {
-                    this.log('WebSocket closed:', event.code, event.reason);
+                    this.log('WebSocket closed:', event.code);
                     this.stopPingPong();
                     this.updateState('disconnected');
 
@@ -140,7 +140,7 @@ export class VoiceClient {
      * Disconnect from the server.
      */
     disconnect(reason = 'user_requested'): void {
-        this.log('Disconnecting:', reason);
+        this.log('Disconnecting');
 
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.send({
@@ -268,8 +268,8 @@ export class VoiceClient {
             handlers.forEach(handler => {
                 try {
                     handler(data);
-                } catch (error) {
-                    console.error(`Error in event handler for ${event}:`, error);
+                } catch {
+                    console.error('[VoiceClient] Event handler failed');
                 }
             });
         }
@@ -307,7 +307,7 @@ export class VoiceClient {
     ): void {
         try {
             const message = JSON.parse(data) as ServerMessage;
-            this.log('Received:', message.type);
+            this.log('Received voice message');
 
             switch (message.type) {
                 case 'session_start':
@@ -351,10 +351,10 @@ export class VoiceClient {
                     break;
 
                 default:
-                    this.log('Unknown message type:', (message as any).type);
+                    this.log('Unknown voice message type');
             }
         } catch (error) {
-            this.log('Failed to parse message:', error);
+            this.log('Failed to handle voice message');
         }
     }
 
@@ -397,7 +397,7 @@ export class VoiceClient {
         message: ServerMessage & { type: 'error' },
         reject?: (error: Error) => void
     ): void {
-        this.log('Server error:', message.code, message.message);
+        this.log('Voice server error');
         this.updateState('error');
         this.emit('error', {
             code: message.code,
@@ -448,7 +448,7 @@ export class VoiceClient {
 
         this.reconnectTimeout = setTimeout(() => {
             this.connect().catch(error => {
-                this.log('Reconnect failed:', error);
+                this.log('Reconnect failed');
             });
         }, delay);
     }
